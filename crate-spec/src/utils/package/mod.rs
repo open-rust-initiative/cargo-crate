@@ -6,13 +6,13 @@ use cms::signed_data::SignedData;
 ///Unsigned file offset
 pub struct Off(pub usize);
 ///Unsigned file size
-pub struct Size(pub usize);
+pub struct Size(pub u32);
 ///Unsigned type id
 pub struct Type(pub u8);
 ///Unsigned small int
 pub struct Uchar(pub u8);
 ///Unsigned str offset
-pub struct StrOff(pub usize);
+pub struct StrOff(pub u32);
 
 ///len + array
 pub struct LenArrayType<T>{
