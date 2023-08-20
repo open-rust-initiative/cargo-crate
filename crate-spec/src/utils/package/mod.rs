@@ -34,7 +34,12 @@ pub struct PKCS7Struct{
 
 ///top-level package structure
 pub struct CratePackage{
-
+    pub magic_number: RawArrayType<Uchar>,
+    pub create_header: CrateHeader,
+    pub string_table: RawArrayType<Uchar>,
+    pub section_index: SectionIndex,
+    pub data_sections: RawArrayType<DataSection>,
+    pub finger_print: RawArrayType<Uchar>,
 }
 
 ///crate header structure
@@ -54,12 +59,25 @@ pub struct SectionIndex{
 
 ///section index entry structure
 pub struct SectionIndexEntry{
+    /*
+FIXME In RFC0.1 there are no alignment requirements for the struct.
+SectionIndexEntry's size is 9 bytes, 9 is not a multiple of 4
+we may padding 3 bytes of 0 after each SectionIndexEntry,
+so here, we use a user-defined encoder to implement the serialization of SectionIndex.
+  */
     pub sh_type: Type,
     pub sh_offset: Off,
     pub sh_size: Size
 }
 
 //data sections
+//
+pub enum DataSection{
+    PackageSection(PackageSection),
+    DepTableSection(DepTableSection),
+    SigStructureSection(SigStructureSection)
+}
+
 ///package section structure
 pub struct PackageSection{
     pub pkg_name: StrOff,
@@ -68,7 +86,7 @@ pub struct PackageSection{
     pub pkg_authors: LenArrayType<StrOff>
 }
 
-///package section structure
+///Dependency table section structure
 pub struct DepTableSection{
     pub dep_name : StrOff,
     pub dep_verreq: StrOff,
@@ -77,8 +95,12 @@ pub struct DepTableSection{
     pub dep_platform: StrOff
 }
 
-///Signature  section
-pub struct SigStructure{
+pub struct CrateBinarySection{
+    pub bin: RawArrayType<Uchar>
+}
+
+///Signature  section structure
+pub struct SigStructureSection{
     sigstruct_size: Size,
     sigstruct_type: Type,
     sigstruct_sig: PKCS7Struct
