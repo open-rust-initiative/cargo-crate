@@ -3,17 +3,33 @@ pub mod bin;
 mod gen_bincode;
 use bincode::{Decode, Encode};
 use cms::signed_data::SignedData;
+use crate::utils::package::gen_bincode::encode2vec_by_bincode;
 //Types used in CratePackage
 
 ///Unsigned file offset
 #[derive(Encode, Decode)]
+#[derive(Default)]
 pub struct Off(pub u32);
 
+impl Off {
+    fn new(x: u32)->Self{
+        Self{
+            0:x
+        }
+    }
+}
 ///Unsigned file size
 #[derive(Encode, Decode, Debug)]
 #[derive(Default)]
 pub struct Size(pub u32);
 
+impl Size {
+    fn new(x: u32)->Self{
+        Self{
+            0:x
+        }
+    }
+}
 ///Unsigned type id
 type Type=u8;
 // #[derive(Encode, Decode)]
@@ -42,8 +58,16 @@ type Uchar=u8;
 // }
 ///Unsigned str offset
 #[derive(Encode, Decode)]
+#[derive(Default)]
 pub struct StrOff(pub u32);
 
+impl StrOff {
+    fn new(x: u32)->Self{
+        Self{
+            0:x
+        }
+    }
+}
 //custom Encode
 //custom Decode
 ///len + array
@@ -62,7 +86,7 @@ impl<T> LenArrayType<T>{
 }
 /// array
 /// custom Encode
-/// self Decode
+/// non-self Decode
 #[derive(Debug)]
 pub struct RawArrayType<T>{
     pub arr:Vec<T>
@@ -72,6 +96,12 @@ impl<T> RawArrayType<T>{
     fn new()->Self{
         Self{
             arr: vec![],
+        }
+    }
+
+    fn from_vec(arr: Vec<T>)->Self{
+        Self{
+            arr
         }
     }
 }
@@ -93,7 +123,7 @@ impl DataSectionCollectionType{
 }
 
 /// custom Encode
-/// self Decode
+/// non-self Decode
 pub struct PKCS7Struct{
     pub cms: SignedData
 }
@@ -102,7 +132,7 @@ pub struct PKCS7Struct{
 //package structure
 
 //auto encode
-//self decode
+//non-self decode
 ///top-level package structure
 #[derive(Encode)]
 pub struct CratePackage{
@@ -110,7 +140,7 @@ pub struct CratePackage{
     pub create_header: CrateHeader,
     pub string_table: RawArrayType<Uchar>,
     pub section_index: SectionIndex,
-    pub data_sections: RawArrayType<DataSection>,
+    pub data_sections: DataSectionCollectionType,
     pub finger_print: RawArrayType<Uchar>,
 }
 
@@ -125,6 +155,19 @@ pub struct CrateHeader{
     pub strtable_offset: Off,
     pub sh_size: Size,
     pub sh_offset: Off
+}
+
+impl CrateHeader{
+    fn new()->Self{
+        Self{
+            c_version: Default::default(),
+            c_flsize: Default::default(),
+            strtable_size: Default::default(),
+            strtable_offset: Default::default(),
+            sh_size: Default::default(),
+            sh_offset: Default::default(),
+        }
+    }
 }
 
 //auto encode
@@ -155,8 +198,13 @@ so here, we use a user-defined encoder to implement the serialization of Section
 //non-self decode
 //data sections
 pub enum DataSection{
+    //0
     PackageSection(PackageSection),
+    //1
     DepTableSection(DepTableSection),
+    //3
+    CrateBinarySection(CrateBinarySection),
+    //4
     SigStructureSection(SigStructureSection)
 }
 
@@ -173,9 +221,9 @@ pub struct PackageSection{
 
 //auto encode
 //auto decode
-///Dependency table section structure
+///Dependency table entry structure
 #[derive(Encode, Decode)]
-pub struct DepTableSection{
+pub struct DepTableEntry{
     pub dep_name : StrOff,
     pub dep_verreq: StrOff,
     pub dep_srctype: Type,
@@ -199,10 +247,18 @@ impl DepTableSection{
     }
 }
 //auto encode
-//self decode
+//non-self decode
 #[derive(Encode)]
 pub struct CrateBinarySection{
     pub bin: RawArrayType<Uchar>
+}
+
+impl CrateBinarySection{
+    pub fn new()->Self{
+        Self{
+            bin:RawArrayType::new()
+        }
+    }
 }
 
 //auto encode
