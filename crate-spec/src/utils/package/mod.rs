@@ -15,13 +15,31 @@ pub struct Off(pub u32);
 pub struct Size(pub u32);
 
 ///Unsigned type id
-#[derive(Encode, Decode)]
-pub struct Type(pub u8);
-
+type Type=u8;
+// #[derive(Encode, Decode)]
+// #[derive(Default)]
+// pub struct Type(pub u8);
+//
+// impl Type {
+//     fn new(x: u8)->Self{
+//         Self{
+//             0:x
+//         }
+//     }
+// }
 ///Unsigned small int
-#[derive(Encode, Decode)]
-pub struct Uchar(pub u8);
-
+type Uchar=u8;
+// #[derive(Encode, Decode)]
+// #[derive(Default)]
+// pub struct Uchar(pub u8);
+//
+// impl Uchar {
+//     fn new(x: u8)->Self{
+//         Self{
+//             0:x
+//         }
+//     }
+// }
 ///Unsigned str offset
 #[derive(Encode, Decode)]
 pub struct StrOff(pub u32);
@@ -54,6 +72,22 @@ impl<T> RawArrayType<T>{
     fn new()->Self{
         Self{
             arr: vec![],
+        }
+    }
+}
+
+/// auto encode
+/// self decode
+/// collections(array whose elem is enum)
+#[derive(Encode)]
+pub struct DataSectionCollectionType{
+    pub col:RawArrayType<DataSection>
+}
+
+impl DataSectionCollectionType{
+    fn new()->Self{
+        Self{
+            col: RawArrayType::new()
         }
     }
 }
@@ -149,6 +183,21 @@ pub struct DepTableSection{
     pub dep_platform: StrOff
 }
 
+//auto encode
+//non-self decode
+///Dependency table section structure
+#[derive(Encode, Decode)]
+pub struct  DepTableSection{
+    pub entries:LenArrayType<DepTableEntry>
+}
+
+impl DepTableSection{
+    pub fn new()->Self{
+        Self{
+            entries: LenArrayType::new()
+        }
+    }
+}
 //auto encode
 //self decode
 #[derive(Encode)]
