@@ -151,7 +151,7 @@ impl Decode for SigStructureSection{
     fn decode<D: Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
         let sigstruct_size:Size = Decode::decode(decoder)?;
         let sigstruct_type:Type = Decode::decode(decoder)?;
-        let sigstruct_sig:PKCS7Struct = PKCS7Struct::decode(decoder, sigstruct_size.0.clone() as usize)?;
+        let sigstruct_sig:PKCS7Struct = PKCS7Struct::decode(decoder, sigstruct_size as usize)?;
         Ok(Self{
             sigstruct_size,
             sigstruct_type,
