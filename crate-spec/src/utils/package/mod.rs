@@ -7,67 +7,20 @@ use crate::utils::package::gen_bincode::encode2vec_by_bincode;
 //Types used in CratePackage
 
 ///Unsigned file offset
-#[derive(Encode, Decode)]
-#[derive(Default)]
-pub struct Off(pub u32);
+pub type Off = u32;
 
-impl Off {
-    fn new(x: u32)->Self{
-        Self{
-            0:x
-        }
-    }
-}
 ///Unsigned file size
-#[derive(Encode, Decode, Debug)]
-#[derive(Default)]
-pub struct Size(pub u32);
+pub type Size = u32;
 
-impl Size {
-    fn new(x: u32)->Self{
-        Self{
-            0:x
-        }
-    }
-}
 ///Unsigned type id
 type Type=u8;
-// #[derive(Encode, Decode)]
-// #[derive(Default)]
-// pub struct Type(pub u8);
-//
-// impl Type {
-//     fn new(x: u8)->Self{
-//         Self{
-//             0:x
-//         }
-//     }
-// }
+
 ///Unsigned small int
 type Uchar=u8;
-// #[derive(Encode, Decode)]
-// #[derive(Default)]
-// pub struct Uchar(pub u8);
-//
-// impl Uchar {
-//     fn new(x: u8)->Self{
-//         Self{
-//             0:x
-//         }
-//     }
-// }
-///Unsigned str offset
-#[derive(Encode, Decode)]
-#[derive(Default)]
-pub struct StrOff(pub u32);
 
-impl StrOff {
-    fn new(x: u32)->Self{
-        Self{
-            0:x
-        }
-    }
-}
+///Unsigned str offset
+type StrOff = u32;
+
 //custom Encode
 //custom Decode
 ///len + array
