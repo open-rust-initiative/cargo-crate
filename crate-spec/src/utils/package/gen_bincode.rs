@@ -215,9 +215,15 @@ impl SectionIndex{
 
 ///RawCollection Decode
 impl DataSectionCollectionType{
-    pub fn decode<D: Decoder>(decoder: &mut D, enum_size_in_bytes:Vec<(i32, usize)>) -> Result<Self, DecodeError> {
+    pub fn decode<D: Decoder>(decoder: &mut D, enum_size_offset_in_bytes:Vec<(i32, usize, usize)>) -> Result<Self, DecodeError> {
         let mut raw_col = DataSectionCollectionType::new();
-        for (type_id, size) in enum_size_in_bytes.into_iter(){
+        let mut consume_size = 0;
+        for (type_id, size, offset) in enum_size_offset_in_bytes.into_iter(){
+            assert!(consume_size <= offset);
+            if consume_size < offset{
+                decoder.reader().consume(offset - consume_size);
+                consume_size = offset;
+            }
             match type_id{
                 0 => {
                     let pack_sec:PackageSection = Decode::decode(decoder)?;
@@ -235,8 +241,9 @@ impl DataSectionCollectionType{
                     let sig_structure:SigStructureSection = Decode::decode(decoder)?;
                     raw_col.col.arr.push(DataSection::SigStructureSection(sig_structure));
                 }
-                _ => {panic!("unkown datasection type_id")}
+                _ => {panic!("unknown datasection type_id")}
             }
+            consume_size += size;
         }
         Ok(raw_col)
     }
