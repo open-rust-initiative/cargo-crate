@@ -162,9 +162,45 @@ impl Decode for SigStructureSection{
 }
 // non-self decode
 
+fn is_magic_number(mn:&MagicNumberType)->bool{
+    for i in 0..MAGIC_NUMBER.len(){
+        if mn[i] != MAGIC_NUMBER[i]{
+            return false;
+        }
+    }
+    true
+}
+
 impl CratePackage{
-    pub fn decode<D: Decoder>(decoder: &mut D) -> Result<Self, DecodeError>{
-        todo!()
+    pub fn decode<D: Decoder>(decoder: &mut D, bin: &[u8]) -> Result<Self, DecodeError>{
+        let magic_number:MagicNumberType  = Decode::decode(decoder).unwrap();
+        assert_eq!(is_magic_number(&magic_number), true);
+
+        let crate_header:CrateHeader = Decode::decode(decoder)?;
+
+        let string_table_bin = &bin[crate_header.strtable_offset as usize .. (crate_header.strtable_size + crate_header.strtable_offset) as usize];
+        let string_table:RawArrayType<Uchar> = RawArrayType::<Uchar>::decode(&mut create_bincode_slice_decoder(string_table_bin), string_table_bin.len())?;
+
+        let section_index_bin = &bin[crate_header.sh_offset as usize .. (crate_header.sh_offset + crate_header.sh_size) as usize];
+        let section_index:SectionIndex = SectionIndex::decode(&mut create_bincode_slice_decoder(section_index_bin), crate_header.sh_num as usize)?;
+
+        let mut enum_size_off_in_bytes = vec![];
+        section_index.entries.arr.iter().for_each(|index_entry| enum_size_off_in_bytes.push((index_entry.sh_type as i32, index_entry.sh_size as usize, index_entry.sh_offset as usize)));
+
+        let datasections_bin = &bin[crate_header.ds_offset as usize .. (crate_header.ds_offset + crate_header.ds_size) as usize];
+        let data_sections = DataSectionCollectionType::decode(&mut create_bincode_slice_decoder(datasections_bin), enum_size_off_in_bytes)?;
+
+        let fingerprint_bin = &bin[(crate_header.ds_offset + crate_header.ds_size) as usize .. (crate_header.ds_offset + crate_header.ds_size) as usize + FINGERPRINT_LEN];
+        let finger_print:FingerPrintType = Decode::decode(&mut create_bincode_slice_decoder(fingerprint_bin))?;
+
+        Ok(Self{
+            magic_number,
+            crate_header,
+            string_table,
+            section_index,
+            data_sections,
+            finger_print,
+        })
     }
 }
 
