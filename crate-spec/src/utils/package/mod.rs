@@ -81,6 +81,13 @@ pub struct PKCS7Struct{
     pub cms: SignedData
 }
 
+//constant val
+pub const MAGIC_NUMBER_LEN:usize=5;
+pub type MagicNumberType = [Uchar; MAGIC_NUMBER_LEN];
+pub const MAGIC_NUMBER:MagicNumberType=[0x43, 0x52, 0x41, 0x54, 0x45];
+pub const FINGERPRINT_LEN:usize = 32;
+pub type FingerPrintType = [Uchar; FINGERPRINT_LEN];
+
 
 //package structure
 
@@ -89,12 +96,12 @@ pub struct PKCS7Struct{
 ///top-level package structure
 #[derive(Encode)]
 pub struct CratePackage{
-    pub magic_number: RawArrayType<Uchar>,
-    pub create_header: CrateHeader,
+    pub magic_number: MagicNumberType,
+    pub crate_header: CrateHeader,
     pub string_table: RawArrayType<Uchar>,
     pub section_index: SectionIndex,
     pub data_sections: DataSectionCollectionType,
-    pub finger_print: RawArrayType<Uchar>,
+    pub finger_print: FingerPrintType
 }
 
 //auto encode
