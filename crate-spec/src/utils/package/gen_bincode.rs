@@ -1,6 +1,6 @@
-use std::any::{Any, TypeId};
-use std::clone;
-use std::mem::size_of;
+use std::any::{TypeId};
+
+
 use bincode;
 use bincode::config::{Configuration, Fixint, legacy, LittleEndian, NoLimit};
 use bincode::{BorrowDecode, Decode, enc, Encode};
@@ -12,22 +12,23 @@ use bincode::error::{DecodeError, EncodeError};
 use cms::cert::x509::der;
 use cms::cert::x509::der::{Decode as OtherDecode, Encode as OtherEncode};
 use cms::signed_data::SignedData;
-use cms::cert::x509::der::SliceReader as DerSliceReader;
-use crate::utils::package::{DataSection, LenArrayType, PackageSection, PKCS7Struct, RawArrayType, DataSectionCollectionType, Size, StrOff, DepTableSection, DepTableEntry, CrateBinarySection, Uchar, Type, SigStructureSection, CratePackage, SectionIndex, SectionIndexEntry};
+
+use crate::utils::package::{DataSection, LenArrayType, PackageSection, PKCS7Struct, RawArrayType, DataSectionCollectionType, Size, DepTableSection, CrateBinarySection, Uchar, Type, SigStructureSection, CratePackage, SectionIndex, SectionIndexEntry, MAGIC_NUMBER, CrateHeader,  FINGERPRINT_LEN, MagicNumberType, FingerPrintType};
 
 
 
 pub const BINCODE_CONFIG: Configuration<LittleEndian, Fixint, NoLimit> = legacy();
 
-pub(crate) fn encode_size_by_bincode<T: bincode::enc::Encode>(val: &T) -> usize{
-    let mut size_encoder = bincode::enc::EncoderImpl::new(bincode::enc::write::SizeWriter::default(), BINCODE_CONFIG.clone());
+
+pub(crate) fn encode_size_by_bincode<T: enc::Encode>(val: &T) -> usize{
+    let mut size_encoder = enc::EncoderImpl::new(enc::write::SizeWriter::default(), BINCODE_CONFIG.clone());
     val.encode(&mut size_encoder).unwrap();
     size_encoder.into_writer().bytes_written
 }
 
-pub (crate) fn encode2vec_by_bincode<T: bincode::enc::Encode>(val: &T)-> Vec<u8>{
+pub (crate) fn encode2vec_by_bincode<T: enc::Encode>(val: &T)-> Vec<u8>{
     let mut buffer = vec![0; encode_size_by_bincode(val)];
-    let mut encoder = enc::EncoderImpl::new(bincode::enc::write::SliceWriter::new(buffer.as_mut_slice()), BINCODE_CONFIG.clone());
+    let mut encoder = enc::EncoderImpl::new(enc::write::SliceWriter::new(buffer.as_mut_slice()), BINCODE_CONFIG.clone());
     val.encode(&mut encoder).unwrap();
     buffer
 }
@@ -47,7 +48,7 @@ pub (crate) fn create_bincode_slice_decoder(bin: &[u8])-> DecoderImpl<SliceReade
 //LenArrayType Encode+Decode
 impl<T: Encode + 'static> Encode for LenArrayType<T>{
     fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
-        self.len.encode(encoder)?;
+        Encode::encode(&self.len, encoder)?;
         for elem in self.arr.iter(){
             elem.encode(encoder)?;
         }
@@ -59,7 +60,7 @@ impl<T: Decode + 'static> Decode for LenArrayType<T>{
     fn decode<D: Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
         let mut len_array = LenArrayType::<T>::new();
         len_array.len = bincode::Decode::decode(decoder)?;
-        for i in 0..len_array.len.0{
+        for _i in 0..len_array.len{
             len_array.arr.push(Decode::decode(decoder)?);
         }
         Ok(len_array)
@@ -70,8 +71,8 @@ impl<'de, T: BorrowDecode<'de> + 'static> BorrowDecode<'de> for LenArrayType<T>{
     fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(decoder: &mut D) -> Result<Self, DecodeError> {
         let mut len_array = LenArrayType::<T>::new();
         len_array.len = bincode::BorrowDecode::borrow_decode(decoder)?;
-        for i in 0..len_array.len.0{
-            len_array.arr.push(bincode::BorrowDecode::borrow_decode(decoder)?);
+        for _i in 0..len_array.len{
+            len_array.arr.push(BorrowDecode::borrow_decode(decoder)?);
         }
         Ok(len_array)
     }
@@ -102,7 +103,7 @@ impl<T: Decode + 'static> RawArrayType<T>{
             return Ok(RawArrayType::from_vec(vec_t));
         }
         let mut raw_array = RawArrayType::<T>::new();
-        for i in 0..elem_num{
+        for _i in 0..elem_num{
             raw_array.arr.push(Decode::decode(decoder)?);
         }
         Ok(raw_array)
@@ -110,7 +111,7 @@ impl<T: Decode + 'static> RawArrayType<T>{
 }
 
 #[test]
-fn test_RawArrayType(){
+fn test_raw_array_type(){
     let a= RawArrayType::<i8>{arr: [1,2,3].to_vec()};
     let encode_vec = encode2vec_by_bincode(&a);
     println!("{:?}", encode_vec);
@@ -125,7 +126,7 @@ fn test_RawArrayType(){
 impl Encode for PKCS7Struct{
     fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
         let mut vec= vec![];
-        let size = self.cms.encode_to_vec(&mut vec).unwrap();
+        let _size = self.cms.encode_to_vec(&mut vec).unwrap();
         encoder.writer().write(vec.as_slice()).unwrap();
         Ok(())
     }
@@ -140,7 +141,7 @@ impl Encode for DataSection{
             DataSection::DepTableSection(x) =>{x.encode(encoder)?}
             DataSection::CrateBinarySection(x) =>{x.encode(encoder)?}
             DataSection::SigStructureSection(x) =>{x.encode(encoder)?}
-            _ => {panic!("section type error")}
+            //_ => {panic!("section type error")}
         }
         Ok(())
     }
