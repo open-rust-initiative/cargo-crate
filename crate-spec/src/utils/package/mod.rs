@@ -3,7 +3,7 @@ pub mod bin;
 mod gen_bincode;
 use bincode::{Decode, Encode};
 use cms::signed_data::SignedData;
-use crate::utils::package::gen_bincode::encode2vec_by_bincode;
+
 //Types used in CratePackage
 
 ///Unsigned file offset
