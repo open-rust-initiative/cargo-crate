@@ -106,8 +106,11 @@ pub struct CrateHeader{
     pub c_flsize: Size,
     pub strtable_size: Size,
     pub strtable_offset: Off,
+    pub sh_num: Size,
     pub sh_size: Size,
-    pub sh_offset: Off
+    pub sh_offset: Off,
+    pub ds_size: Size,
+    pub ds_offset: Off,
 }
 
 impl CrateHeader{
@@ -117,8 +120,11 @@ impl CrateHeader{
             c_flsize: Default::default(),
             strtable_size: Default::default(),
             strtable_offset: Default::default(),
+            sh_num: Default::default(),
             sh_size: Default::default(),
             sh_offset: Default::default(),
+            ds_size: Default::default(),
+            ds_offset: Default::default(),
         }
     }
 }
