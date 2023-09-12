@@ -133,7 +133,7 @@ pub struct CratePackage{
 }
 
 impl CratePackage {
-    fn new()->Self{
+    pub fn new()->Self{
         Self{
             magic_number: MAGIC_NUMBER,
             crate_header: CrateHeader::new(),

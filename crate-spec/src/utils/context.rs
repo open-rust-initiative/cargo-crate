@@ -81,7 +81,7 @@ impl PackageContext{
         dsc.col.arr.push(DataSection::CrateBinarySection(binary_section));
     }
 
-    pub fn write_to_data_section_collection_sig(&self, dsc: &mut DataSectionCollectionType){
+   pub fn write_to_data_section_collection_sig(&self, dsc: &mut DataSectionCollectionType){
         for siginfo in self.sigs.iter(){
             let mut sig = SigStructureSection::new();
             siginfo.write_to_sig_structure_section(&mut sig);
@@ -90,16 +90,16 @@ impl PackageContext{
     }
 
 
-    pub fn write_to_package_section(&self, ps: &mut PackageSection, str_table: &mut StringTable){
+   fn write_to_package_section(&self, ps: &mut PackageSection, str_table: &mut StringTable){
         self.pack_info.write_to_package_section(ps, str_table);
         encode_size_by_bincode(ps);
     }
 
-    pub fn read_from_package_section(&mut self, ps: &PackageSection, str_table: & StringTable){
+   fn read_from_package_section(&mut self, ps: &PackageSection, str_table: & StringTable){
         self.pack_info.read_from_package_section(ps, str_table);
     }
 
-    pub fn write_to_dep_table_section(&self, dts:&mut DepTableSection, str_table: &mut StringTable){
+   fn write_to_dep_table_section(&self, dts:&mut DepTableSection, str_table: &mut StringTable){
         let mut entries = vec![];
         self.dep_infos.iter().for_each(|dep_info|{
             let mut dte = DepTableEntry::new();
@@ -109,7 +109,7 @@ impl PackageContext{
         dts.entries = LenArrayType::from_vec(entries);
     }
 
-    pub fn read_from_dep_table_section(&mut self, dts:& DepTableSection, str_table: &mut StringTable){
+    fn read_from_dep_table_section(&mut self, dts:& DepTableSection, str_table: &mut StringTable){
         dts.entries.arr.iter().for_each(|dte|{
             let mut dep_info = DepInfo::default();
             dep_info.read_from_dep_table_entry(dte, str_table);
@@ -117,11 +117,11 @@ impl PackageContext{
         });
     }
 
-    pub fn write_to_crate_binary_section(&self, cbs: &mut CrateBinarySection){
+    fn write_to_crate_binary_section(&self, cbs: &mut CrateBinarySection){
         self.crate_binary.write_to_crate_binary_section(cbs);
     }
 
-    pub fn read_from_crate_biary_section(&mut self, cbs:& CrateBinarySection){
+    fn read_from_crate_biary_section(&mut self, cbs:& CrateBinarySection){
         self.crate_binary.read_from_crate_biary_section(cbs);
     }
 }
