@@ -79,11 +79,12 @@ impl<'de, T: BorrowDecode<'de> + 'static> BorrowDecode<'de> for LenArrayType<T>{
 //RawArray Encode
 impl<T: Encode + 'static> Encode for RawArrayType<T>{
     fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
-        if TypeId::of::<u8>() == TypeId::of::<T>() || TypeId::of::<Uchar>() == TypeId::of::<T>() || TypeId::of::<Type>() == TypeId::of::<T>(){
-            let vec_u8: &[u8] = unsafe { core::mem::transmute(self.arr.as_slice())};
-            encoder.writer().write(vec_u8).unwrap();
-            return Ok(())
-        }
+        //TODO FIXME!!!
+        // if TypeId::of::<u8>() == TypeId::of::<T>() || TypeId::of::<Uchar>() == TypeId::of::<T>() || TypeId::of::<Type>() == TypeId::of::<T>(){
+        //     let vec_u8: &[u8] = unsafe { core::mem::transmute(self.arr.as_slice())};
+        //     encoder.writer().write(vec_u8).unwrap();
+        //     return Ok(())
+        // }
         for elem in self.arr.iter(){
             elem.encode(encoder)?
         }
@@ -94,12 +95,13 @@ impl<T: Encode + 'static> Encode for RawArrayType<T>{
 ///RawArray Decode
 impl<T: Decode + 'static> RawArrayType<T>{
     pub fn decode<D: Decoder>(decoder: &mut D, elem_num:usize) -> Result<Self, DecodeError> {
-        if TypeId::of::<u8>() == TypeId::of::<T>() || TypeId::of::<Uchar>() == TypeId::of::<T>() || TypeId::of::<Type>() == TypeId::of::<T>(){
-            let mut buf = vec![0 as u8; 8 * elem_num];
-            decoder.reader().read(buf.as_mut_slice()).unwrap();
-            let vec_t: Vec<T> = unsafe{Vec::from_raw_parts(buf.as_ptr() as *mut T, buf.len(), buf.len())};
-            return Ok(RawArrayType::from_vec(vec_t));
-        }
+        //TODO FIXME
+        // if TypeId::of::<u8>() == TypeId::of::<T>() || TypeId::of::<Uchar>() == TypeId::of::<T>() || TypeId::of::<Type>() == TypeId::of::<T>(){
+        //     let mut buf = vec![0 as u8; 8 * elem_num];
+        //     decoder.reader().read(buf.as_mut_slice()).unwrap();
+        //     let vec_t: Vec<T> = unsafe{Vec::from_raw_parts(buf.as_ptr() as *mut T, buf.len(), buf.len())};
+        //     return Ok(RawArrayType::from_vec(vec_t));
+        // }
         let mut raw_array = RawArrayType::<T>::new();
         for _i in 0..elem_num{
             raw_array.arr.push(Decode::decode(decoder)?);

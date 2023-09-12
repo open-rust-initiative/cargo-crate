@@ -1,7 +1,7 @@
 use crate::utils::context::{BinaryLayout, CrateBinary, DepInfo, PackageContext, PackageInfo, SigInfo, SrcTypePath, StringTable};
 use crate::utils::package::{CrateBinarySection, CrateHeader, CratePackage, CRATEVERSION, DataSection, DataSectionCollectionType, DepTableSection, FINGERPRINT_LEN, get_datasection_type, MAGIC_NUMBER, Off, PackageSection, RawArrayType, SectionIndex, SectionIndexEntry, Size};
 use crate::utils::package::bin::Encode;
-use crate::utils::package::gen_bincode::encode2vec_by_bincode;
+use crate::utils::package::gen_bincode::{create_bincode_slice_decoder, decode_slice_by_bincode, encode2vec_by_bincode};
 
 
 impl CratePackage{
@@ -149,5 +149,8 @@ fn test_encode() {
     package_context.encode_to_crate_package(&mut str_table, &mut crate_package);
 
     let bin = encode2vec_by_bincode(&crate_package);
+
+    let crate_package:CratePackage = CratePackage::decode(&mut create_bincode_slice_decoder(bin.as_slice()), bin.as_slice()).unwrap();
+
 }
 
