@@ -1,6 +1,6 @@
 use std::collections::{HashMap};
 use std::io::BufReader;
-use crate::utils::package::{CrateBinarySection, DataSection, DataSectionCollectionType, DepTableEntry, DepTableSection, LenArrayType, PackageSection, RawArrayType, SigStructureSection, Size};
+use crate::utils::package::{CrateBinarySection, DataSection, DataSectionCollectionType, DepTableEntry, DepTableSection, LenArrayType, PackageSection, RawArrayType, SigStructureSection, Size, Type};
 use crate::utils::package::gen_bincode::encode_size_by_bincode;
 
 pub struct SigInfo{
@@ -27,9 +27,9 @@ impl SigInfo{
 
     pub fn write_to_sig_structure_section(&self, sig: &mut SigStructureSection){
         //FIXME current it's not right
-        sig.sigstruct_type = 0;
-        sig.sigstruct_size = 10;
-        sig.sigstruct_sig = RawArrayType::<u8>::from_vec([0;10].to_vec());
+        sig.sigstruct_type = self.typ as Type;
+        sig.sigstruct_size = self.size as Size;
+        sig.sigstruct_sig = RawArrayType::from_vec(self.bin.clone());
     }
 }
 
@@ -58,7 +58,6 @@ impl PackageContext{
     }
 
     pub fn add_certificate(&mut self){
-        self.sigs.push(SigInfo::new());
         unimplemented!()
     }
 
