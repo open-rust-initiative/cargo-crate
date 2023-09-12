@@ -54,9 +54,9 @@ impl PackageContext{
     //1 before sig
     fn encode_to_crate_package_before_sig(&self, str_table: &mut StringTable,  crate_package: &mut CratePackage, sig_num: usize){
         crate_package.set_magic_numer();
-        crate_package.set_string_table(str_table);
         self.set_pack_dep_bin(crate_package, str_table);
         crate_package.set_section_index();
+        crate_package.set_string_table(str_table);
         crate_package.set_crate_header(sig_num);
     }
 
@@ -70,7 +70,7 @@ impl PackageContext{
         crate_package.set_section_index();
         crate_package.set_crate_header(0);
         //FIXME current it's not right
-        crate_package.set_finger_print([0; 32].to_vec());
+        crate_package.set_finger_print([2; 256].to_vec());
     }
 
 
@@ -121,7 +121,7 @@ fn test_encode() {
         SigInfo{
             typ: 0,
             size: 10,
-            bin: vec![10; 0],
+            bin: vec![10; 10],
         }
     }
 
@@ -129,7 +129,7 @@ fn test_encode() {
         SigInfo{
             typ: 1,
             size: 30,
-            bin: vec![15; 5],
+            bin: vec![15; 30],
         }
     }
 
@@ -142,6 +142,7 @@ fn test_encode() {
 
     package_context.dep_infos.push(get_dep_info1());
     package_context.dep_infos.push(get_dep_info2());
+    package_context.crate_binary.bytes = vec![5; 55];
 
     package_context.sigs.push(get_sig_info1());
     package_context.sigs.push(get_sig_info2());
@@ -152,5 +153,6 @@ fn test_encode() {
 
     let crate_package:CratePackage = CratePackage::decode(&mut create_bincode_slice_decoder(bin.as_slice()), bin.as_slice()).unwrap();
 
+    println!("{:#?}", crate_package);
 }
 
