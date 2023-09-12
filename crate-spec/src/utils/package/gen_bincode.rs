@@ -12,33 +12,34 @@ use bincode::error::{DecodeError, EncodeError};
 use cms::cert::x509::der;
 use cms::cert::x509::der::{Decode as OtherDecode, Encode as OtherEncode};
 use cms::signed_data::SignedData;
+use crate::utils::context::StringTable;
 
-use crate::utils::package::{DataSection, LenArrayType, PackageSection, PKCS7Struct, RawArrayType, DataSectionCollectionType, Size, DepTableSection, CrateBinarySection, Uchar, Type, SigStructureSection, CratePackage, SectionIndex, SectionIndexEntry, MAGIC_NUMBER, CrateHeader,  FINGERPRINT_LEN, MagicNumberType, FingerPrintType};
+use crate::utils::package::{DataSection, LenArrayType, PackageSection, PKCS7Struct, RawArrayType, DataSectionCollectionType, Size, DepTableSection, CrateBinarySection, Uchar, Type, SigStructureSection, CratePackage, SectionIndex, SectionIndexEntry, MAGIC_NUMBER, CrateHeader, FINGERPRINT_LEN, MagicNumberType, FingerPrintType, get_datasection_type};
 
 
 
 pub const BINCODE_CONFIG: Configuration<LittleEndian, Fixint, NoLimit> = legacy();
 
 
-pub(crate) fn encode_size_by_bincode<T: enc::Encode>(val: &T) -> usize{
+pub fn encode_size_by_bincode<T: enc::Encode>(val: &T) -> usize{
     let mut size_encoder = enc::EncoderImpl::new(enc::write::SizeWriter::default(), BINCODE_CONFIG.clone());
     val.encode(&mut size_encoder).unwrap();
     size_encoder.into_writer().bytes_written
 }
 
-pub (crate) fn encode2vec_by_bincode<T: enc::Encode>(val: &T)-> Vec<u8>{
+pub fn encode2vec_by_bincode<T: enc::Encode>(val: &T)-> Vec<u8>{
     let mut buffer = vec![0; encode_size_by_bincode(val)];
     let mut encoder = enc::EncoderImpl::new(enc::write::SliceWriter::new(buffer.as_mut_slice()), BINCODE_CONFIG.clone());
     val.encode(&mut encoder).unwrap();
     buffer
 }
 
-pub (crate) fn decode_slice_by_bincode<T: bincode::de::Decode>(bin: &[u8])-> T{
+pub  fn decode_slice_by_bincode<T: bincode::de::Decode>(bin: &[u8])-> T{
     let (res, _) = bincode::decode_from_slice(bin, BINCODE_CONFIG.clone()).unwrap();
     res
 }
 
-pub (crate) fn create_bincode_slice_decoder(bin: &[u8])-> DecoderImpl<SliceReader, Configuration<LittleEndian, Fixint, NoLimit>>{
+pub  fn create_bincode_slice_decoder(bin: &[u8])-> DecoderImpl<SliceReader, Configuration<LittleEndian, Fixint, NoLimit>>{
     DecoderImpl::new(SliceReader::new(bin), BINCODE_CONFIG.clone())
 }
 
@@ -181,16 +182,16 @@ impl CratePackage{
         let string_table_bin = &bin[crate_header.strtable_offset as usize .. (crate_header.strtable_size + crate_header.strtable_offset) as usize];
         let string_table:RawArrayType<Uchar> = RawArrayType::<Uchar>::decode(&mut create_bincode_slice_decoder(string_table_bin), string_table_bin.len())?;
 
-        let section_index_bin = &bin[crate_header.sh_offset as usize .. (crate_header.sh_offset + crate_header.sh_size) as usize];
-        let section_index:SectionIndex = SectionIndex::decode(&mut create_bincode_slice_decoder(section_index_bin), crate_header.sh_num as usize)?;
+        let section_index_bin = &bin[crate_header.si_offset as usize .. (crate_header.si_offset + crate_header.si_size) as usize];
+        let section_index:SectionIndex = SectionIndex::decode(&mut create_bincode_slice_decoder(section_index_bin), crate_header.si_num as usize)?;
 
         let mut enum_size_off_in_bytes = vec![];
         section_index.entries.arr.iter().for_each(|index_entry| enum_size_off_in_bytes.push((index_entry.sh_type as i32, index_entry.sh_size as usize, index_entry.sh_offset as usize)));
 
-        let datasections_bin = &bin[crate_header.ds_offset as usize .. (crate_header.ds_offset + crate_header.ds_size) as usize];
+        let datasections_bin = &bin[crate_header.ds_offset as usize ..];
         let data_sections = DataSectionCollectionType::decode(&mut create_bincode_slice_decoder(datasections_bin), enum_size_off_in_bytes)?;
 
-        let fingerprint_bin = &bin[(crate_header.ds_offset + crate_header.ds_size) as usize .. (crate_header.ds_offset + crate_header.ds_size) as usize + FINGERPRINT_LEN];
+        let fingerprint_bin = &bin[bin.len() - FINGERPRINT_LEN ..];
         let finger_print:FingerPrintType = Decode::decode(&mut create_bincode_slice_decoder(fingerprint_bin))?;
 
         Ok(Self{
@@ -202,6 +203,7 @@ impl CratePackage{
             finger_print,
         })
     }
+
 }
 
 ///SectionIndex Decode
@@ -247,6 +249,23 @@ impl DataSectionCollectionType{
         }
         Ok(raw_col)
     }
+
+    pub fn encode_size_offset(&self)->Vec<(usize, usize)>{
+        let mut v = vec![];
+        let mut offset:usize = 0;
+        self.col.arr.iter().for_each(|x|{
+            let size = encode_size_by_bincode(x);
+            v.push((size, offset));
+            offset += size;
+        });
+        v
+    }
+
+    pub fn encode_fake_to_vec(&self, trunc_len:usize)->Vec<u8>{
+        let mut buf = encode2vec_by_bincode(self);
+        buf.truncate(trunc_len);
+        buf
+    }
 }
 
 
@@ -268,5 +287,97 @@ impl PKCS7Struct{
         Ok(Self{
             cms
         })
+    }
+}
+
+
+//get_size
+impl CrateHeader{
+    pub fn get_size(&self)->usize{
+        encode_size_by_bincode(self)
+    }
+}
+
+impl<T:Encode + 'static> RawArrayType<T>{
+    pub fn get_size(&self)->usize{
+        encode_size_by_bincode(self)
+    }
+}
+
+impl SectionIndex{
+    pub fn get_size(&self)->usize{
+        encode_size_by_bincode(self)
+    }
+
+    pub fn get_none_sig_size(&self)->usize{
+        let mut total_len = 0;
+        self.entries.arr.iter().for_each(|x|{
+            if x.sh_type != 4{
+                total_len += x.get_size();
+            }
+        });
+        total_len
+    }
+
+    pub fn get_none_sig_num(&self)->usize{
+        let mut total_len = 0;
+        self.entries.arr.iter().for_each(|x|{
+            if x.sh_type != 4{
+                total_len += 1;
+            }
+        });
+        total_len
+    }
+
+    pub fn get_num(&self)->usize{
+        self.entries.arr.len()
+    }
+
+    pub fn encode_fake_to_vec(&self, no_sig_size:usize, size: usize)->Vec<u8>{
+        let mut buf = encode2vec_by_bincode(self);
+        buf.truncate(no_sig_size);
+        buf.extend(vec![0; size - no_sig_size]);
+        buf
+    }
+
+    pub fn fake_datasection_size(&self, no_sig_num:Size)->usize{
+        (self.entries.arr[no_sig_num as usize - 1].sh_size + self.entries.arr[no_sig_num as usize -1].sh_offset) as usize
+    }
+
+}
+
+impl DataSectionCollectionType{
+    pub fn get_size(&self)->usize{
+        encode_size_by_bincode(self)
+    }
+}
+
+impl PackageSection{
+    pub fn get_size(&self)->usize{
+        encode_size_by_bincode(self)
+    }
+}
+
+impl DepTableSection{
+    pub fn get_size(&self)->usize{
+        encode_size_by_bincode(self)
+    }
+}
+
+impl CrateBinarySection{
+    pub fn get_size(&self)->usize{
+        encode_size_by_bincode(self)
+    }
+}
+
+impl SigStructureSection{
+    pub fn get_size(&self)->usize{
+        encode_size_by_bincode(self)
+    }
+}
+
+impl SectionIndexEntry{
+    pub fn get_size(&self)->usize{
+        encode_size_by_bincode(self)
     }
 }

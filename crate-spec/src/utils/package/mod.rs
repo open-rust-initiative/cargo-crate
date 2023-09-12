@@ -1,8 +1,11 @@
 //!package definition
 pub mod bin;
-mod gen_bincode;
+pub mod gen_bincode;
 use bincode::{Decode, Encode};
-use cms::signed_data::SignedData;
+use cms::cert::x509::spki::ObjectIdentifier;
+use cms::content_info::CmsVersion;
+use cms::signed_data::{EncapsulatedContentInfo, SignedData, SignerInfos};
+use crate::utils::package::gen_bincode::encode_size_by_bincode;
 
 //Types used in CratePackage
 
@@ -13,10 +16,10 @@ pub type Off = u32;
 pub type Size = u32;
 
 ///Unsigned type id
-type Type=u8;
+pub type Type=u8;
 
 ///Unsigned small int
-type Uchar=u8;
+pub type Uchar=u8;
 
 ///Unsigned str offset
 type StrOff = u32;
@@ -36,6 +39,26 @@ impl<T> LenArrayType<T>{
             arr: vec![],
         }
     }
+
+    pub fn from_vec(arr: Vec<T>)->Self{
+        Self{
+            len: arr.len() as Size,
+            arr,
+        }
+    }
+}
+
+impl <T:Clone> LenArrayType<T> {
+    pub fn copy_from_vec(v: &Vec<T>) ->Self{
+        let mut len_array = Self::new();
+        len_array.arr = v.to_vec();
+        len_array.len = v.len() as Size;
+        len_array
+    }
+
+    pub fn to_vec(&self)->Vec<T>{
+        self.arr.to_vec()
+    }
 }
 /// array
 /// custom Encode
@@ -46,13 +69,13 @@ pub struct RawArrayType<T>{
 }
 
 impl<T> RawArrayType<T>{
-    fn new()->Self{
+    pub fn new()->Self{
         Self{
             arr: vec![],
         }
     }
 
-    fn from_vec(arr: Vec<T>)->Self{
+    pub fn from_vec(arr: Vec<T>)->Self{
         Self{
             arr
         }
@@ -68,7 +91,7 @@ pub struct DataSectionCollectionType{
 }
 
 impl DataSectionCollectionType{
-    fn new()->Self{
+    pub fn new()->Self{
         Self{
             col: RawArrayType::new()
         }
@@ -81,13 +104,21 @@ pub struct PKCS7Struct{
     pub cms: SignedData
 }
 
+impl PKCS7Struct{
+    pub fn new(sd: SignedData)->Self{
+        Self{
+            cms: sd
+        }
+    }
+}
+
 //constant val
 pub const MAGIC_NUMBER_LEN:usize=5;
 pub type MagicNumberType = [Uchar; MAGIC_NUMBER_LEN];
 pub const MAGIC_NUMBER:MagicNumberType=[0x43, 0x52, 0x41, 0x54, 0x45];
 pub const FINGERPRINT_LEN:usize = 32;
 pub type FingerPrintType = [Uchar; FINGERPRINT_LEN];
-
+pub const CRATEVERSION:Uchar = 0;
 
 //package structure
 
@@ -104,33 +135,46 @@ pub struct CratePackage{
     pub finger_print: FingerPrintType
 }
 
+impl CratePackage {
+    fn new()->Self{
+        Self{
+            magic_number: MAGIC_NUMBER,
+            crate_header: CrateHeader::new(),
+            string_table: RawArrayType::new(),
+            section_index: SectionIndex::new(),
+            data_sections: DataSectionCollectionType::new(),
+            finger_print: FingerPrintType::default(),
+        }
+    }
+}
+
 //auto encode
 //auto decode
 ///crate header structure
 #[derive(Encode, Decode)]
 pub struct CrateHeader{
     pub c_version: Uchar,
-    pub c_flsize: Size,
     pub strtable_size: Size,
     pub strtable_offset: Off,
-    pub sh_num: Size,
-    pub sh_size: Size,
-    pub sh_offset: Off,
-    pub ds_size: Size,
+    pub si_num: Size,
+    pub si_not_sig_size: Size,
+    pub si_not_sig_num: Size,
+    pub si_size: Size,
+    pub si_offset: Off,
     pub ds_offset: Off,
 }
 
 impl CrateHeader{
-    fn new()->Self{
+    pub fn new()->Self{
         Self{
             c_version: Default::default(),
-            c_flsize: Default::default(),
             strtable_size: Default::default(),
             strtable_offset: Default::default(),
-            sh_num: Default::default(),
-            sh_size: Default::default(),
-            sh_offset: Default::default(),
-            ds_size: Default::default(),
+            si_num: Default::default(),
+            si_size: Default::default(),
+            si_not_sig_size:Default::default(),
+            si_not_sig_num: Default::default(),
+            si_offset: Default::default(),
             ds_offset: Default::default(),
         }
     }
@@ -144,6 +188,17 @@ pub struct SectionIndex{
     pub entries: RawArrayType<SectionIndexEntry>
 }
 
+impl SectionIndex{
+    pub fn new()->Self{
+        Self{
+            entries: RawArrayType::new(),
+        }
+    }
+
+    pub fn section_num(&self)->Size{
+        self.entries.arr.len() as Size
+    }
+}
 //auto encode
 //auto decode
 ///section index entry structure
@@ -160,6 +215,23 @@ so here, we use a user-defined encoder to implement the serialization of Section
     pub sh_size: Size
 }
 
+impl SectionIndexEntry{
+    pub fn default()->Self{
+        Self{
+            sh_type: 0,
+            sh_offset: 0,
+            sh_size: 0,
+        }
+    }
+
+    pub fn new(sh_type:Type, sh_offset:Off, sh_size:Size)->Self{
+        Self{
+            sh_type,
+            sh_offset,
+            sh_size
+        }
+    }
+}
 //custom encode
 //non-self decode
 //data sections
@@ -174,6 +246,14 @@ pub enum DataSection{
     SigStructureSection(SigStructureSection)
 }
 
+pub fn get_datasection_type(d:&DataSection)->Type{
+    match d{
+        DataSection::PackageSection(_) => {0}
+        DataSection::DepTableSection(_) => {1}
+        DataSection::CrateBinarySection(_) => {3}
+        DataSection::SigStructureSection(_) => {4}
+    }
+}
 //auto encode
 //auto decode
 ///package section structure
@@ -185,6 +265,17 @@ pub struct PackageSection{
     pub pkg_authors: LenArrayType<StrOff>
 }
 
+impl PackageSection{
+    pub fn new()->Self{
+        Self{
+            pkg_name: 0,
+            pkg_version: 0,
+            pkg_license: 0,
+            pkg_authors: LenArrayType::new(),
+        }
+    }
+
+}
 //auto encode
 //auto decode
 ///Dependency table entry structure
@@ -197,6 +288,17 @@ pub struct DepTableEntry{
     pub dep_platform: StrOff
 }
 
+impl DepTableEntry {
+    pub fn new()->Self{
+        Self{
+            dep_name: 0,
+            dep_verreq: 0,
+            dep_srctype: 0,
+            dep_srcpath: 0,
+            dep_platform: 0,
+        }
+    }
+}
 //auto encode
 //non-self decode
 ///Dependency table section structure
@@ -204,6 +306,7 @@ pub struct DepTableEntry{
 pub struct  DepTableSection{
     pub entries:LenArrayType<DepTableEntry>
 }
+
 
 impl DepTableSection{
     pub fn new()->Self{
@@ -237,4 +340,13 @@ pub struct SigStructureSection{
     sigstruct_sig: PKCS7Struct
 }
 
+impl SigStructureSection{
+    pub fn new(sd: SignedData)->Self{
+        Self{
+            sigstruct_size: 0,
+            sigstruct_type: 0,
+            sigstruct_sig: PKCS7Struct::new(sd),
+        }
+    }
+}
 

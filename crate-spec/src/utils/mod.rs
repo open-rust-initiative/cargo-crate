@@ -1,3 +1,4 @@
 pub mod package;
-pub mod encoder;
-pub mod decoder;
+pub mod encode;
+pub mod decode;
+pub mod context;
