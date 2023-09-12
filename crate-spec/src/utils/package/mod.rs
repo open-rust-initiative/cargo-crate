@@ -24,6 +24,7 @@ type StrOff = u32;
 //custom Encode
 //custom Decode
 ///len + array
+#[derive(Debug)]
 pub struct LenArrayType<T: 'static>{
     pub len:Size,
     pub arr:Vec<T>
@@ -82,7 +83,7 @@ impl<T> RawArrayType<T>{
 /// auto encode
 /// self decode
 /// collections(array whose elem is enum)
-#[derive(Encode)]
+#[derive(Encode, Debug)]
 pub struct DataSectionCollectionType{
     pub col:RawArrayType<DataSection>
 }
@@ -113,7 +114,7 @@ impl DataSectionCollectionType{
 pub const MAGIC_NUMBER_LEN:usize=5;
 pub type MagicNumberType = [Uchar; MAGIC_NUMBER_LEN];
 pub const MAGIC_NUMBER:MagicNumberType=[0x43, 0x52, 0x41, 0x54, 0x45];
-pub const FINGERPRINT_LEN:usize = 32;
+pub const FINGERPRINT_LEN:usize = 256;
 pub type FingerPrintType = [Uchar; FINGERPRINT_LEN];
 pub const CRATEVERSION:Uchar = 0;
 
@@ -122,7 +123,7 @@ pub const CRATEVERSION:Uchar = 0;
 //auto encode
 //non-self decode
 ///top-level package structure
-#[derive(Encode)]
+#[derive(Encode, Debug)]
 pub struct CratePackage{
     pub magic_number: MagicNumberType,
     pub crate_header: CrateHeader,
@@ -140,7 +141,7 @@ impl CratePackage {
             string_table: RawArrayType::new(),
             section_index: SectionIndex::new(),
             data_sections: DataSectionCollectionType::new(),
-            finger_print: FingerPrintType::default(),
+            finger_print: [0; FINGERPRINT_LEN]
         }
     }
 
@@ -150,16 +151,16 @@ impl CratePackage {
 //auto encode
 //auto decode
 ///crate header structure
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, Debug)]
 pub struct CrateHeader{
     pub c_version: Uchar,
     pub strtable_size: Size,
     pub strtable_offset: Off,
-    pub si_num: Size,
-    pub si_not_sig_size: Size,
-    pub si_not_sig_num: Size,
     pub si_size: Size,
     pub si_offset: Off,
+    pub si_num: Size,
+    pub si_not_sig_num: Size,
+    pub si_not_sig_size: Size,
     pub ds_offset: Off,
 }
 
@@ -182,7 +183,7 @@ impl CrateHeader{
 //auto encode
 //self decode
 ///section index structure
-#[derive(Encode)]
+#[derive(Encode, Debug)]
 pub struct SectionIndex{
     pub entries: RawArrayType<SectionIndexEntry>
 }
@@ -201,7 +202,7 @@ impl SectionIndex{
 //auto encode
 //auto decode
 ///section index entry structure
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, Debug)]
 pub struct SectionIndexEntry{
     /*
 FIXME In RFC0.1 there are no alignment requirements for the struct.
@@ -234,6 +235,7 @@ impl SectionIndexEntry{
 //custom encode
 //non-self decode
 //data sections
+#[derive(Debug)]
 pub enum DataSection{
     //0
     PackageSection(PackageSection),
@@ -256,7 +258,7 @@ pub fn get_datasection_type(d:&DataSection)->Type{
 //auto encode
 //auto decode
 ///package section structure
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, Debug)]
 pub struct PackageSection{
     pub pkg_name: StrOff,
     pub pkg_version: StrOff,
@@ -278,7 +280,7 @@ impl PackageSection{
 //auto encode
 //auto decode
 ///Dependency table entry structure
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, Debug)]
 pub struct DepTableEntry{
     pub dep_name : StrOff,
     pub dep_verreq: StrOff,
@@ -301,7 +303,7 @@ impl DepTableEntry {
 //auto encode
 //non-self decode
 ///Dependency table section structure
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, Debug)]
 pub struct  DepTableSection{
     pub entries:LenArrayType<DepTableEntry>
 }
@@ -316,7 +318,7 @@ impl DepTableSection{
 }
 //auto encode
 //non-self decode
-#[derive(Encode)]
+#[derive(Encode, Debug)]
 pub struct CrateBinarySection{
     pub bin: RawArrayType<Uchar>
 }
@@ -332,7 +334,7 @@ impl CrateBinarySection{
 //auto encode
 //custom decode
 ///Signature  section structure
-#[derive(Encode)]
+#[derive(Encode, Debug)]
 pub struct SigStructureSection{
     pub sigstruct_size: Size,
     pub sigstruct_type: Type,
