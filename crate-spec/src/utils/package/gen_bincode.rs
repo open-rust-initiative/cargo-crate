@@ -9,12 +9,9 @@ use bincode::de::read::{Reader, SliceReader};
 use bincode::enc::Encoder;
 use bincode::enc::write::Writer;
 use bincode::error::{DecodeError, EncodeError};
-use cms::cert::x509::der;
-use cms::cert::x509::der::{Decode as OtherDecode, Encode as OtherEncode};
-use cms::signed_data::SignedData;
-use crate::utils::context::StringTable;
 
-use crate::utils::package::{DataSection, LenArrayType, PackageSection, PKCS7Struct, RawArrayType, DataSectionCollectionType, Size, DepTableSection, CrateBinarySection, Uchar, Type, SigStructureSection, CratePackage, SectionIndex, SectionIndexEntry, MAGIC_NUMBER, CrateHeader, FINGERPRINT_LEN, MagicNumberType, FingerPrintType, get_datasection_type};
+
+use crate::utils::package::{DataSection, LenArrayType, PackageSection,  RawArrayType, DataSectionCollectionType, Size, DepTableSection, CrateBinarySection, Uchar, Type, SigStructureSection, CratePackage, SectionIndex, SectionIndexEntry, MAGIC_NUMBER, CrateHeader, FINGERPRINT_LEN, MagicNumberType, FingerPrintType, get_datasection_type};
 
 
 
@@ -123,15 +120,15 @@ fn test_raw_array_type(){
 }
 
 
-//PKCS7Struct Encode
-impl Encode for PKCS7Struct{
-    fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
-        let mut vec= vec![];
-        let _size = self.cms.encode_to_vec(&mut vec).unwrap();
-        encoder.writer().write(vec.as_slice()).unwrap();
-        Ok(())
-    }
-}
+// //PKCS7Struct Encode
+// impl Encode for PKCS7Struct{
+//     fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
+//         let mut vec= vec![];
+//         let _size = self.cms.encode_to_vec(&mut vec).unwrap();
+//         encoder.writer().write(vec.as_slice()).unwrap();
+//         Ok(())
+//     }
+// }
 
 
 //datasection Encode
@@ -153,7 +150,8 @@ impl Decode for SigStructureSection{
     fn decode<D: Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
         let sigstruct_size:Size = Decode::decode(decoder)?;
         let sigstruct_type:Type = Decode::decode(decoder)?;
-        let sigstruct_sig:PKCS7Struct = PKCS7Struct::decode(decoder, sigstruct_size as usize)?;
+        let sigstruct_sig = RawArrayType::<u8>::decode(decoder, sigstruct_size as usize)?;
+        //let sigstruct_sig:PKCS7Struct = PKCS7Struct::decode(decoder, sigstruct_size as usize)?;
         Ok(Self{
             sigstruct_size,
             sigstruct_type,
@@ -279,16 +277,16 @@ impl CrateBinarySection{
 }
 
 //PKCS7Struct decode
-impl PKCS7Struct{
-    fn decode<D: Decoder>(decoder: &mut D, size_in_bytes:usize) -> Result<Self, DecodeError> {
-        let mut der_reader = der::SliceReader::new(decoder.reader().peek_read(size_in_bytes).unwrap()).unwrap();
-        let cms = SignedData::decode(&mut der_reader).unwrap();
-        decoder.reader().consume(size_in_bytes);
-        Ok(Self{
-            cms
-        })
-    }
-}
+// impl PKCS7Struct{
+//     fn decode<D: Decoder>(decoder: &mut D, size_in_bytes:usize) -> Result<Self, DecodeError> {
+//         let mut der_reader = der::SliceReader::new(decoder.reader().peek_read(size_in_bytes).unwrap()).unwrap();
+//         let cms = SignedData::decode(&mut der_reader).unwrap();
+//         decoder.reader().consume(size_in_bytes);
+//         Ok(Self{
+//             cms
+//         })
+//     }
+// }
 
 
 //get_size

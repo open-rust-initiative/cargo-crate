@@ -2,9 +2,6 @@
 pub mod bin;
 pub mod gen_bincode;
 use bincode::{Decode, Encode};
-use cms::cert::x509::spki::ObjectIdentifier;
-use cms::content_info::CmsVersion;
-use cms::signed_data::{EncapsulatedContentInfo, SignedData, SignerInfos};
 use crate::utils::package::gen_bincode::encode_size_by_bincode;
 
 //Types used in CratePackage
@@ -98,19 +95,19 @@ impl DataSectionCollectionType{
     }
 }
 
-/// custom Encode
-/// non-self Decode
-pub struct PKCS7Struct{
-    pub cms: SignedData
-}
-
-impl PKCS7Struct{
-    pub fn new(sd: SignedData)->Self{
-        Self{
-            cms: sd
-        }
-    }
-}
+// /// custom Encode
+// /// non-self Decode
+// pub struct PKCS7Struct{
+//     pub cms: SignedData
+// }
+//
+// impl PKCS7Struct{
+//     pub fn new(sd: SignedData)->Self{
+//         Self{
+//             cms: sd
+//         }
+//     }
+// }
 
 //constant val
 pub const MAGIC_NUMBER_LEN:usize=5;
@@ -146,6 +143,8 @@ impl CratePackage {
             finger_print: FingerPrintType::default(),
         }
     }
+
+
 }
 
 //auto encode
@@ -335,17 +334,17 @@ impl CrateBinarySection{
 ///Signature  section structure
 #[derive(Encode)]
 pub struct SigStructureSection{
-    sigstruct_size: Size,
-    sigstruct_type: Type,
-    sigstruct_sig: PKCS7Struct
+    pub sigstruct_size: Size,
+    pub sigstruct_type: Type,
+    pub sigstruct_sig: RawArrayType<u8>
 }
 
 impl SigStructureSection{
-    pub fn new(sd: SignedData)->Self{
+    pub fn new()->Self{
         Self{
             sigstruct_size: 0,
             sigstruct_type: 0,
-            sigstruct_sig: PKCS7Struct::new(sd),
+            sigstruct_sig: RawArrayType::new(),
         }
     }
 }

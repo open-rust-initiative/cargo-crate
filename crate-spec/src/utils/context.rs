@@ -1,12 +1,44 @@
 use std::collections::{HashMap};
 use std::io::BufReader;
-use crate::utils::package::{CrateBinarySection, DataSection, DataSectionCollectionType, DepTableEntry, DepTableSection, LenArrayType, PackageSection, RawArrayType};
+use crate::utils::package::{CrateBinarySection, DataSection, DataSectionCollectionType, DepTableEntry, DepTableSection, LenArrayType, PackageSection, RawArrayType, SigStructureSection, Size};
 use crate::utils::package::gen_bincode::encode_size_by_bincode;
+
+pub struct SigInfo{
+    pub typ:u32,
+    pub size:usize,
+    pub bin: Vec<u8>,
+}
+
+impl SigInfo{
+    pub fn new()->Self{
+        SigInfo{
+            typ: 0,
+            size: 0,
+            bin: vec![],
+        }
+    }
+
+    pub fn read_from_sig_structure_section(&mut self, sig: & SigStructureSection){
+        //FIXME current it's not right
+        self.typ = sig.sigstruct_type as u32;
+        self.size = sig.sigstruct_size as usize;
+        self.bin = sig.sigstruct_sig.arr.clone();
+    }
+
+    pub fn write_to_sig_structure_section(&self, sig: &mut SigStructureSection){
+        //FIXME current it's not right
+        sig.sigstruct_type = 0;
+        sig.sigstruct_size = 10;
+        sig.sigstruct_sig = RawArrayType::<u8>::from_vec([0;10].to_vec());
+    }
+}
+
 ///package context contains package's self and dependency package info
 pub struct PackageContext {
     pub pack_info: PackageInfo,
     pub dep_infos: Vec<DepInfo>,
     pub crate_binary: CrateBinary,
+    pub sigs: Vec<SigInfo>,
     // pack_section_size: Option<u32>,
     // dep_table_section_size: Option<u32>,
     // crate_binary_section_size: Option<u32>
@@ -21,10 +53,20 @@ impl PackageContext{
             // pack_section_size: None,
             // dep_table_section_size: None,
             // crate_binary_section_size: None
+            sigs: vec![],
         }
     }
 
-    pub fn write_to_data_section_collection(&self, dsc: &mut DataSectionCollectionType, str_table: &mut StringTable){
+    pub fn add_certificate(&mut self){
+        self.sigs.push(SigInfo::new());
+        unimplemented!()
+    }
+
+    pub fn get_sig_num(&self)->usize{
+        return self.sigs.len();
+    }
+
+    pub fn write_to_data_section_collection_without_sig(&self, dsc: &mut DataSectionCollectionType, str_table: &mut StringTable){
         let mut package_section = PackageSection::new();
         self.write_to_package_section(&mut package_section, str_table);
         dsc.col.arr.push(DataSection::PackageSection(package_section));
@@ -38,6 +80,15 @@ impl PackageContext{
         self.write_to_crate_binary_section(&mut binary_section);
         dsc.col.arr.push(DataSection::CrateBinarySection(binary_section));
     }
+
+    pub fn write_to_data_section_collection_sig(&self, dsc: &mut DataSectionCollectionType){
+        for siginfo in self.sigs.iter(){
+            let mut sig = SigStructureSection::new();
+            siginfo.write_to_sig_structure_section(&mut sig);
+            dsc.col.arr.push(DataSection::SigStructureSection(sig));
+        }
+    }
+
 
     pub fn write_to_package_section(&self, ps: &mut PackageSection, str_table: &mut StringTable){
         self.pack_info.write_to_package_section(ps, str_table);
@@ -138,7 +189,7 @@ impl DepInfo{
         Self{
             name: "".to_string(),
             ver_req: "".to_string(),
-            src: SrcTypePath::crates_io,
+            src: SrcTypePath::CratesIo,
             src_platform: "".to_string(),
             dump: false,
         }
@@ -158,23 +209,23 @@ impl DepInfo{
         dte.dep_name = str_table.insert_str(self.name.clone());
         dte.dep_verreq = str_table.insert_str(self.ver_req.clone());
         match &self.src{
-            SrcTypePath::crates_io=>{
+            SrcTypePath::CratesIo =>{
                 dte.dep_srctype = 0;
                 dte.dep_srcpath = str_table.insert_str("".to_string());
             }
-            SrcTypePath::git(str)=>{
+            SrcTypePath::Git(str)=>{
                 dte.dep_srctype = 1;
                 dte.dep_srcpath = str_table.insert_str(str.clone());
             }
-            SrcTypePath::url(str)=>{
+            SrcTypePath::Url(str)=>{
                 dte.dep_srctype = 2;
                 dte.dep_srcpath = str_table.insert_str(str.clone());
             }
-            SrcTypePath::registry(str)=>{
+            SrcTypePath::Registry(str)=>{
                 dte.dep_srctype = 3;
                 dte.dep_srcpath = str_table.insert_str(str.clone());
             }
-            SrcTypePath::p2p(str)=>{
+            SrcTypePath::P2p(str)=>{
                 dte.dep_srctype = 4;
                 dte.dep_srcpath = str_table.insert_str(str.clone());
             }
@@ -188,19 +239,19 @@ impl DepInfo{
         self.ver_req = str_table.get_str_by_off(&dte.dep_verreq);
         match dte.dep_srctype{
             0 => {
-                self.src = SrcTypePath::crates_io;
+                self.src = SrcTypePath::CratesIo;
             }
             1 => {
-                self.src = SrcTypePath::git(str_table.get_str_by_off(&dte.dep_srcpath));
+                self.src = SrcTypePath::Git(str_table.get_str_by_off(&dte.dep_srcpath));
             }
             2 => {
-                self.src = SrcTypePath::url(str_table.get_str_by_off(&dte.dep_srcpath));
+                self.src = SrcTypePath::Url(str_table.get_str_by_off(&dte.dep_srcpath));
             }
             3 => {
-                self.src = SrcTypePath::registry(str_table.get_str_by_off(&dte.dep_srcpath));
+                self.src = SrcTypePath::Registry(str_table.get_str_by_off(&dte.dep_srcpath));
             }
             4 => {
-                self.src = SrcTypePath::p2p(str_table.get_str_by_off(&dte.dep_srcpath));
+                self.src = SrcTypePath::P2p(str_table.get_str_by_off(&dte.dep_srcpath));
             }
             _ => {
                 panic!("dep_srctype not valid!")
@@ -212,11 +263,11 @@ impl DepInfo{
 
 ///dependencies' src type and path
 pub enum SrcTypePath{
-    crates_io,
-    git(String),
-    url(String),
-    registry(String),
-    p2p(String)
+    CratesIo,
+    Git(String),
+    Url(String),
+    Registry(String),
+    P2p(String)
 }
 
 ///StringTable
