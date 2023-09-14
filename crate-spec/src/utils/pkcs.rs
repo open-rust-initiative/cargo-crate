@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::fs;
 use std::path::Path;
 use openssl::hash::{hash, MessageDigest};
-use openssl::nid::Nid;
+
 use openssl::pkcs7::Pkcs7;
 use openssl::pkcs7::Pkcs7Flags;
 use openssl::pkey::PKey;
@@ -69,7 +69,7 @@ impl PKCS{
             store_builder.add_cert(root_ca).expect("should succeed");
         }
 
-        let store = store_builder.build();
+        let _store = store_builder.build();
 
         let pkcs7 =
             Pkcs7::sign(&cert, &pkey, &certs, message, flags).expect("should succeed");
@@ -93,7 +93,7 @@ impl PKCS{
 
         let store = store_builder.build();
 
-        let (pkcs7_decoded, content) =
+        let (pkcs7_decoded, _content) =
             Pkcs7::from_smime(signed_bin).expect("should succeed");
 
         let mut output = Vec::new();
@@ -110,13 +110,13 @@ impl PKCS{
 }
 
 #[test]
-fn test_PKCS(){
+fn test_pkcs(){
     let mut pkcs = PKCS::new();
     pkcs.load_from_file_writer("test/cert.pem".to_string(), "test/key.pem".to_string(), ["test/root-ca.pem".to_string()].to_vec());
     let bin = "Hello rust!".to_string();
     let digest = pkcs.gen_digest_256(bin.as_bytes());
-    let signedData = pkcs.encode_pkcs_bin(digest.as_slice());
-    // let digest_de = pkcs.decode_pkcs_bin(signedData.as_slice());
+    let _signed_data = pkcs.encode_pkcs_bin(digest.as_slice());
+    // let digest_de = pkcs.decode_pkcs_bin(_signed_data.as_slice());
     // assert_eq!(digest, digest_de);
 }
 
@@ -137,7 +137,7 @@ fn test_pkcs7(){
     let root_ca = X509::from_pem(root_ca).unwrap();
     store_builder.add_cert(root_ca).expect("should succeed");
 
-    let store = store_builder.build();
+    let _store = store_builder.build();
 
     let pkcs7 =
         Pkcs7::sign(&cert, &pkey, &certs, message.as_bytes(), flags).expect("should succeed");
@@ -154,7 +154,7 @@ fn test_pkcs7(){
 
     let mut store_builder = X509StoreBuilder::new().expect("should succeed");
     let root_ca = include_bytes!("../../test/cert1.pem");
-    let root_ca = X509::from_pem(root_ca).unwrap();
+    let _root_ca = X509::from_pem(root_ca).unwrap();
     let root_ca = include_bytes!("../../test/root-ca.pem");
     let root_ca = X509::from_pem(root_ca).unwrap();
     store_builder.add_cert(root_ca).expect("should succeed");

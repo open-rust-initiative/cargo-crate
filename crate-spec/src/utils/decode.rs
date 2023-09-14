@@ -1,8 +1,9 @@
-use std::ops::Index;
-use bincode::Encode;
-use crate::utils::context::{CrateBinary, DepInfo, PackageContext, PackageInfo, SigInfo, SIGTYPE, SrcTypePath, StringTable};
-use crate::utils::package::{CrateBinarySection, CratePackage, DataSection, DepTableSection, FINGERPRINT_LEN, get_datasection_type, PackageSection, SectionIndex, SigStructureSection, Size, Type};
-use crate::utils::package::gen_bincode::{create_bincode_slice_decoder, encode2vec_by_bincode};
+
+
+use crate::utils::context::{DepInfo, PackageContext, PackageInfo, SigInfo, SIGTYPE, SrcTypePath, StringTable};
+use crate::utils::package::{CrateBinarySection, CratePackage, DataSection, DepTableSection, FINGERPRINT_LEN,  PackageSection, SectionIndex, SigStructureSection, Size, Type};
+use crate::utils::package::gen_bincode::create_bincode_slice_decoder;
+
 use crate::utils::pkcs::PKCS;
 
 
@@ -61,16 +62,15 @@ impl CratePackage{
 impl PackageContext{
     pub fn get_binary_before_sig(&self, crate_package: &CratePackage, bin:&[u8]) -> Vec<u8> {
         //FIXME
-        let mut buf = vec![];
         let ds_size = crate_package.section_index.get_datasection_size_without_sig();
         let total_size = crate_package.crate_header.ds_offset as usize + ds_size;
         if crate_package.section_index.get_sig_num() != self.sigs.len() && self.sigs.len() > 0{
-            assert!(crate_package.section_index.get_sig_num() == 0);
+            assert_eq!(crate_package.section_index.get_sig_num(), 0);
 
         }else{
 
         }
-        buf = bin[..total_size].to_vec();
+        let mut buf = bin[..total_size].to_vec();
         let zero_begin = crate_package.crate_header.si_offset as usize + crate_package.section_index.get_none_sig_size();
         let zero_end = crate_package.crate_header.si_offset as usize + crate_package.crate_header.si_size as usize;
         //FIXME this is not efficient
@@ -142,9 +142,9 @@ impl PackageContext{
     }
 
     pub fn decode_from_crate_package(&mut self, bin:&[u8])->(CratePackage, StringTable){
-        let mut crate_package = CratePackage::decode_from_slice(bin);
+        let crate_package = CratePackage::decode_from_slice(bin);
         let mut str_table = StringTable::new();
-        str_table.from_bytes(crate_package.string_table.arr.as_slice());
+        str_table.read_bytes(crate_package.string_table.arr.as_slice());
         self.get_pack_info(&crate_package, &str_table);
         self.get_deps(&crate_package, &str_table);
         self.get_binary(&crate_package);
@@ -165,7 +165,7 @@ fn test_decode() {
         PackageInfo{
             name: "rust-crate".to_string(),
             version: "1.0.0".to_string(),
-            lisense: "MIT".to_string(),
+            license: "MIT".to_string(),
             authors: vec!["shuibing".to_string(), "rust".to_string()],
         }
     }
@@ -210,11 +210,10 @@ fn test_decode() {
 
     let bin = package_context.encode_to_crate_package(&mut str_table, &mut crate_package);
 
-    //println!("{:#?}", crate_package);
-    let crate_package:CratePackage = CratePackage::decode(&mut create_bincode_slice_decoder(bin.as_slice()), bin.as_slice()).unwrap();
+    //println!("{:#?}", _crate_package);
 
     let mut pac = PackageContext::new();
     pac.set_root_cas_bin(PKCS::get_root_ca_bins(["test/root-ca.pem".to_string()].to_vec()));
-    let (crate_package, str_table) = pac.decode_from_crate_package(bin.as_slice());
+    let (_crate_package, _str_table) = pac.decode_from_crate_package(bin.as_slice());
     //println!("{:#?}", pac);
 }

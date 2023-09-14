@@ -1,8 +1,8 @@
-use std::u32;
-use crate::utils::context::{BinaryLayout, CrateBinary, DepInfo, NotSigNum, PackageContext, PackageInfo, SigInfo, SIGTYPE, SrcTypePath, StringTable};
-use crate::utils::package::{CrateBinarySection, CrateHeader, CratePackage, CRATEVERSION, DataSection, DataSectionCollectionType, DepTableSection, FINGERPRINT_LEN, get_datasection_type, MAGIC_NUMBER, Off, PackageSection, RawArrayType, SectionIndex, SectionIndexEntry, Size};
-use crate::utils::package::bin::Encode;
-use crate::utils::package::gen_bincode::{create_bincode_slice_decoder, decode_slice_by_bincode, encode2vec_by_bincode};
+
+use crate::utils::context::{DepInfo, NOT_SIG_NUM, PackageContext, PackageInfo, SigInfo, SIGTYPE, SrcTypePath, StringTable};
+use crate::utils::package::{CrateHeader, CratePackage, CRATEVERSION, DataSection, DataSectionCollectionType, DepTableSection, FINGERPRINT_LEN, get_datasection_type, MAGIC_NUMBER, Off, PackageSection, RawArrayType, SectionIndex, SectionIndexEntry, Size};
+
+use crate::utils::package::gen_bincode::{encode2vec_by_bincode};
 use crate::utils::pkcs::PKCS;
 
 
@@ -78,11 +78,11 @@ impl PackageContext{
     }
 
     //1 before sig
-    fn encode_to_crate_package_before_sig(&self, str_table: &mut StringTable,  crate_package: &mut CratePackage, sig_num: usize){
+    fn encode_to_crate_package_before_sig(&self, str_table: &mut StringTable, crate_package: &mut CratePackage){
         crate_package.set_magic_numer();
         self.set_pack_dep_bin(crate_package, str_table);
         //this is setting fake sigsection
-        self.set_sigs(crate_package, NotSigNum);
+        self.set_sigs(crate_package, NOT_SIG_NUM);
         crate_package.set_section_index();
         crate_package.set_string_table(str_table);
         crate_package.set_crate_header(0);
@@ -92,7 +92,7 @@ impl PackageContext{
     fn encode_sig_to_crate_package(&mut self, crate_package: &mut CratePackage){
         self.calc_sigs(crate_package);
         //this is setting true sigsection
-        self.set_sigs(crate_package, NotSigNum);
+        self.set_sigs(crate_package, NOT_SIG_NUM);
     }
 
     //3 after sig
@@ -106,7 +106,7 @@ impl PackageContext{
 
     //1 2 3
     pub fn encode_to_crate_package(&mut self, str_table: &mut StringTable, crate_package: &mut CratePackage)->Vec<u8>{
-        self.encode_to_crate_package_before_sig(str_table, crate_package, self.get_sig_num());
+        self.encode_to_crate_package_before_sig(str_table, crate_package, );
         self.encode_sig_to_crate_package(crate_package);
         self.encode_to_crate_package_after_sig(crate_package);
         encode2vec_by_bincode(crate_package)
@@ -122,7 +122,7 @@ fn test_encode() {
         PackageInfo{
             name: "rust-crate".to_string(),
             version: "1.0.0".to_string(),
-            lisense: "MIT".to_string(),
+            license: "MIT".to_string(),
             authors: vec!["shuibing".to_string(), "rust".to_string()],
         }
     }

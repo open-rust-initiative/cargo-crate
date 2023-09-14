@@ -1,11 +1,11 @@
 use std::collections::{HashMap};
-use std::io::BufReader;
+
 use crate::utils::package::{CrateBinarySection, DataSection, DataSectionCollectionType, DepTableEntry, DepTableSection, LenArrayType, PackageSection, RawArrayType, SigStructureSection, Size, Type};
 use crate::utils::package::gen_bincode::encode_size_by_bincode;
 use crate::utils::pkcs::PKCS;
 
 
-pub const NotSigNum:usize = 3;
+pub const NOT_SIG_NUM:usize = 3;
 
 #[derive(Debug)]
 pub struct SigInfo{
@@ -128,9 +128,9 @@ impl PackageContext {
         encode_size_by_bincode(ps);
     }
 
-   fn read_from_package_section(&mut self, ps: &PackageSection, str_table: & StringTable){
-        self.pack_info.read_from_package_section(ps, str_table);
-    }
+   // fn read_from_package_section(&mut self, ps: &PackageSection, str_table: & StringTable){
+   //      self.pack_info.read_from_package_section(ps, str_table);
+   //  }
 
    fn write_to_dep_table_section(&self, dts:&mut DepTableSection, str_table: &mut StringTable){
         let mut entries = vec![];
@@ -142,28 +142,28 @@ impl PackageContext {
         dts.entries = LenArrayType::from_vec(entries);
     }
 
-    fn read_from_dep_table_section(&mut self, dts:& DepTableSection, str_table: &mut StringTable){
-        dts.entries.arr.iter().for_each(|dte|{
-            let mut dep_info = DepInfo::default();
-            dep_info.read_from_dep_table_entry(dte, str_table);
-            self.dep_infos.push(dep_info);
-        });
-    }
+    // fn read_from_dep_table_section(&mut self, dts:& DepTableSection, str_table: &mut StringTable){
+    //     dts.entries.arr.iter().for_each(|dte|{
+    //         let mut dep_info = DepInfo::default();
+    //         dep_info.read_from_dep_table_entry(dte, str_table);
+    //         self.dep_infos.push(dep_info);
+    //     });
+    // }
 
     fn write_to_crate_binary_section(&self, cbs: &mut CrateBinarySection){
         self.crate_binary.write_to_crate_binary_section(cbs);
     }
 
-    fn read_from_crate_biary_section(&mut self, cbs:& CrateBinarySection){
-        self.crate_binary.read_from_crate_biary_section(cbs);
-    }
+    // fn read_from_crate_biary_section(&mut self, cbs:& CrateBinarySection){
+    //     self.crate_binary.read_from_crate_biary_section(cbs);
+    // }
 }
 ///package's info
 #[derive(Debug)]
 pub struct PackageInfo {
     pub name: String,
     pub version: String,
-    pub lisense: String,
+    pub license: String,
     pub authors: Vec<String>
 }
 
@@ -172,7 +172,7 @@ impl PackageInfo{
         Self{
             name: "".to_string(),
             version: "".to_string(),
-            lisense: "".to_string(),
+            license: "".to_string(),
             authors: vec![],
         }
     }
@@ -181,7 +181,7 @@ impl PackageInfo{
         Self{
             name,
             version,
-            lisense,
+            license: lisense,
             authors
         }
     }
@@ -189,7 +189,7 @@ impl PackageInfo{
     pub fn write_to_package_section(&self, ps: &mut PackageSection, str_table: &mut StringTable){
         ps.pkg_name = str_table.insert_str(self.name.clone());
         ps.pkg_version = str_table.insert_str(self.version.clone());
-        ps.pkg_license = str_table.insert_str(self.lisense.clone());
+        ps.pkg_license = str_table.insert_str(self.license.clone());
         let mut authors_off = vec![];
         self.authors.iter().for_each(|author|{
             authors_off.push(str_table.insert_str(author.clone()));
@@ -200,7 +200,7 @@ impl PackageInfo{
     pub fn read_from_package_section(&mut self, ps: &PackageSection, str_table: & StringTable){
         self.name = str_table.get_str_by_off(&ps.pkg_name);
         self.version = str_table.get_str_by_off(&ps.pkg_version);
-        self.lisense = str_table.get_str_by_off(&ps.pkg_license);
+        self.license = str_table.get_str_by_off(&ps.pkg_license);
         let authors_off = ps.pkg_authors.to_vec();
         authors_off.iter().for_each(|author_off|{
             self.authors.push(str_table.get_str_by_off(author_off));
@@ -329,15 +329,15 @@ impl StringTable{
     }
 
     pub fn insert_str(&mut self, st:String)->u32{
-        if self.str2off.contains_key(&st){
-            return self.str2off.get(&st).unwrap().clone();
-        }else{
+        return if self.str2off.contains_key(&st) {
+            self.str2off.get(&st).unwrap().clone()
+        } else {
             let st_len = st.as_bytes().len() as u32;
             let ret_val = self.total_bytes;
             self.str2off.insert(st.clone(), self.total_bytes);
             self.off2str.insert(self.total_bytes, st.clone());
             self.total_bytes += 4 + st_len;
-            return ret_val;
+            ret_val
         }
     }
 
@@ -368,7 +368,7 @@ impl StringTable{
     }
 
     ///parse string table from bytes
-    pub fn from_bytes(&mut self, bytes: &[u8]){
+    pub fn read_bytes(&mut self, bytes: &[u8]){
         let mut i = 0;
         while i < bytes.len(){
             let mut len_bytes:[u8; 4]= [0;4];
@@ -404,28 +404,3 @@ impl CrateBinary{
     }
 }
 
-pub struct BinaryLayout{
-    pub magic_number:Vec<u8>,
-    pub crate_header:Vec<u8>,
-    pub string_table:Vec<u8>,
-    pub section_index:Vec<u8>,
-    pub section_index_fake: Vec<u8>,
-    pub data_sections:Vec<Vec<u8>>,
-    pub finger_print:Vec<u8>,
-    sig_num: u32,
-}
-
-impl BinaryLayout{
-    pub fn new(sig_num: u32)->Self{
-        Self{
-            magic_number: vec![],
-            crate_header: vec![],
-            string_table: vec![],
-            section_index: vec![],
-            section_index_fake: vec![],
-            data_sections: vec![],
-            finger_print: vec![],
-            sig_num
-        }
-    }
-}

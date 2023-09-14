@@ -3,7 +3,7 @@ pub mod bin;
 pub mod gen_bincode;
 
 use bincode::{Decode, Encode};
-use crate::utils::package::gen_bincode::encode_size_by_bincode;
+
 
 //Types used in CratePackage
 
