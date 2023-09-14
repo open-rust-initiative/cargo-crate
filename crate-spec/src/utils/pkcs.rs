@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use std::fs;
 use std::path::Path;
 use openssl::hash::{hash, MessageDigest};
@@ -10,10 +11,17 @@ use openssl::x509::store::X509StoreBuilder;
 use openssl::x509::X509;
 
 
+
 pub struct PKCS{
     cert_bin: Vec<u8>,
     pkey_bin: Vec<u8>,
     root_ca_bin: Vec<u8>
+}
+
+impl Debug for PKCS{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("")
+    }
 }
 
 impl PKCS{

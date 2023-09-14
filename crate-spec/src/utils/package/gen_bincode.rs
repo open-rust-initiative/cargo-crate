@@ -173,6 +173,15 @@ fn is_magic_number(mn:&MagicNumberType)->bool{
 }
 
 impl CratePackage{
+    pub fn encode_to_vec(&self)->Vec<u8>{
+        encode2vec_by_bincode(self)
+    }
+
+    pub fn decode_from_slice(bin:&[u8])->CratePackage{
+        Self::decode(&mut create_bincode_slice_decoder(bin), bin).unwrap()
+    }
+
+
     pub fn decode<D: Decoder>(decoder: &mut D, bin: &[u8]) -> Result<Self, DecodeError>{
         let magic_number:MagicNumberType  = Decode::decode(decoder).unwrap();
         assert_eq!(is_magic_number(&magic_number), true);

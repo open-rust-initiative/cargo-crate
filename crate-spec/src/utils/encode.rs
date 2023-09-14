@@ -1,7 +1,9 @@
-use crate::utils::context::{BinaryLayout, CrateBinary, DepInfo, PackageContext, PackageInfo, SigInfo, SrcTypePath, StringTable};
+use std::u32;
+use crate::utils::context::{BinaryLayout, CrateBinary, DepInfo, PackageContext, PackageInfo, SigInfo, SIGTYPE, SrcTypePath, StringTable};
 use crate::utils::package::{CrateBinarySection, CrateHeader, CratePackage, CRATEVERSION, DataSection, DataSectionCollectionType, DepTableSection, FINGERPRINT_LEN, get_datasection_type, MAGIC_NUMBER, Off, PackageSection, RawArrayType, SectionIndex, SectionIndexEntry, Size};
 use crate::utils::package::bin::Encode;
 use crate::utils::package::gen_bincode::{create_bincode_slice_decoder, decode_slice_by_bincode, encode2vec_by_bincode};
+use crate::utils::pkcs::PKCS;
 
 
 impl CratePackage{
@@ -49,6 +51,31 @@ impl PackageContext{
         self.write_to_data_section_collection_without_sig(&mut crate_package.data_sections, str_table);
     }
 
+    fn calc_sigs(&mut self, crate_package: &CratePackage){
+        let bin_all = encode2vec_by_bincode(crate_package);
+        let bin_all = self.get_binary_before_sig(crate_package, bin_all.as_slice());
+        let bin_crate = crate_package.get_crate_binary_section().bin.arr.as_slice();
+        self.sigs.iter_mut().for_each(|siginfo|{
+            let mut digest = vec![];
+            match siginfo.typ {
+                0 => {
+                    digest = siginfo.pkcs.gen_digest_256(bin_all.as_slice());
+                }
+                1 => {
+                    digest = siginfo.pkcs.gen_digest_256(bin_crate);
+                }
+                _ => {panic!("sig type is not right!")}
+            }
+            siginfo.bin = siginfo.pkcs.encode_pkcs_bin(digest.as_slice());
+            siginfo.size = siginfo.bin.len();
+        });
+    }
+
+    fn calc_fingerprint(&self, crate_package: &CratePackage)->Vec<u8>{
+        let bin_all = encode2vec_by_bincode(crate_package);
+        PKCS::new().gen_digest_256(&bin_all[..bin_all.len() - FINGERPRINT_LEN])
+    }
+
     //1 before sig
     fn encode_to_crate_package_before_sig(&self, str_table: &mut StringTable,  crate_package: &mut CratePackage, sig_num: usize){
         crate_package.set_magic_numer();
@@ -59,7 +86,8 @@ impl PackageContext{
     }
 
     //2 sig
-    fn encode_sig_to_crate_package(&self, crate_package: &mut CratePackage){
+    fn encode_sig_to_crate_package(&mut self, crate_package: &mut CratePackage){
+        self.calc_sigs(crate_package);
         self.set_sigs(crate_package);
     }
 
@@ -67,16 +95,17 @@ impl PackageContext{
     fn encode_to_crate_package_after_sig(&self, crate_package: &mut CratePackage){
         crate_package.set_section_index();
         crate_package.set_crate_header(0);
-        //FIXME current it's not right
-        crate_package.set_finger_print([2; 256].to_vec());
+        let finger_print = self.calc_fingerprint(crate_package);
+        crate_package.set_finger_print(finger_print);
     }
 
 
     //1 2 3
-    pub fn encode_to_crate_package(&self, str_table: &mut StringTable, crate_package: &mut CratePackage){
+    pub fn encode_to_crate_package(&mut self, str_table: &mut StringTable, crate_package: &mut CratePackage)->Vec<u8>{
         self.encode_to_crate_package_before_sig(str_table, crate_package, self.get_sig_num());
         self.encode_sig_to_crate_package(crate_package);
         self.encode_to_crate_package_after_sig(crate_package);
+        encode2vec_by_bincode(crate_package)
     }
 }
 
@@ -120,6 +149,7 @@ fn test_encode() {
             typ: 0,
             size: 10,
             bin: vec![10; 10],
+            pkcs: PKCS::new(),
         }
     }
 
@@ -128,6 +158,7 @@ fn test_encode() {
             typ: 1,
             size: 30,
             bin: vec![15; 30],
+            pkcs: PKCS::new()
         }
     }
 
@@ -145,11 +176,10 @@ fn test_encode() {
     package_context.sigs.push(get_sig_info1());
     package_context.sigs.push(get_sig_info2());
 
-    package_context.encode_to_crate_package(&mut str_table, &mut crate_package);
+    let bin = package_context.encode_to_crate_package(&mut str_table, &mut crate_package);
 
-    let bin = encode2vec_by_bincode(&crate_package);
-
-    let crate_package:CratePackage = CratePackage::decode(&mut create_bincode_slice_decoder(bin.as_slice()), bin.as_slice()).unwrap();
+    let crate_package = CratePackage::decode_from_slice(bin.as_slice());
+    //let crate_package:CratePackage = CratePackage::decode(&mut create_bincode_slice_decoder(bin.as_slice()), bin.as_slice()).unwrap();
 
     println!("{:#?}", crate_package);
 }

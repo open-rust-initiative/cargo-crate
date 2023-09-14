@@ -2,11 +2,14 @@ use std::collections::{HashMap};
 use std::io::BufReader;
 use crate::utils::package::{CrateBinarySection, DataSection, DataSectionCollectionType, DepTableEntry, DepTableSection, LenArrayType, PackageSection, RawArrayType, SigStructureSection, Size, Type};
 use crate::utils::package::gen_bincode::encode_size_by_bincode;
+use crate::utils::pkcs::PKCS;
+
 #[derive(Debug)]
 pub struct SigInfo{
     pub typ:u32,
     pub size:usize,
     pub bin: Vec<u8>,
+    pub pkcs: PKCS,
 }
 
 impl SigInfo{
@@ -15,6 +18,7 @@ impl SigInfo{
             typ: 0,
             size: 0,
             bin: vec![],
+            pkcs: PKCS::new(),
         }
     }
 
@@ -45,6 +49,20 @@ pub struct PackageContext {
     // crate_binary_section_size: Option<u32>
 }
 
+pub enum SIGTYPE {
+    FILE,
+    CRATEBIN,
+}
+
+pub enum DATASECTIONTYPE{
+    PACK = 0,
+    DEPTABLE = 1,
+    CRATEBIN = 3,
+    SIGSTRUCTURE = 4,
+}
+
+
+
 impl PackageContext{
     pub fn new()->Self{
         Self{
@@ -58,8 +76,15 @@ impl PackageContext{
         }
     }
 
-    pub fn add_certificate(&mut self){
-        unimplemented!()
+    pub fn add_sig(&mut self, pkcs:PKCS, sign_type: SIGTYPE) ->usize{
+        let mut siginfo = SigInfo::new();
+        siginfo.pkcs = pkcs;
+        match sign_type {
+            SIGTYPE::FILE => siginfo.typ = 0,
+            SIGTYPE::CRATEBIN => siginfo.typ = 1
+        }
+        self.sigs.push(siginfo);
+        self.sigs.len() - 1
     }
 
     pub fn get_sig_num(&self)->usize{

@@ -115,7 +115,7 @@ impl DataSectionCollectionType{
 pub const MAGIC_NUMBER_LEN:usize=5;
 pub type MagicNumberType = [Uchar; MAGIC_NUMBER_LEN];
 pub const MAGIC_NUMBER:MagicNumberType=[0x43, 0x52, 0x41, 0x54, 0x45];
-pub const FINGERPRINT_LEN:usize = 256;
+pub const FINGERPRINT_LEN:usize = 32;
 pub type FingerPrintType = [Uchar; FINGERPRINT_LEN];
 pub const CRATEVERSION:Uchar = 0;
 

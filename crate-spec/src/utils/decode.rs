@@ -1,8 +1,9 @@
 use std::ops::Index;
 use bincode::Encode;
-use crate::utils::context::{CrateBinary, DepInfo, PackageContext, PackageInfo, SigInfo, SrcTypePath, StringTable};
-use crate::utils::package::{CrateBinarySection, CratePackage, DataSection, DepTableSection, get_datasection_type, PackageSection, SectionIndex, SigStructureSection, Size, Type};
+use crate::utils::context::{CrateBinary, DepInfo, PackageContext, PackageInfo, SigInfo, SIGTYPE, SrcTypePath, StringTable};
+use crate::utils::package::{CrateBinarySection, CratePackage, DataSection, DepTableSection, FINGERPRINT_LEN, get_datasection_type, PackageSection, SectionIndex, SigStructureSection, Size, Type};
 use crate::utils::package::gen_bincode::{create_bincode_slice_decoder, encode2vec_by_bincode};
+use crate::utils::pkcs::PKCS;
 
 
 impl SectionIndex{
@@ -74,6 +75,10 @@ impl PackageContext{
         buf
     }
 
+    pub fn get_binary_before_digest(&self, bin:&[u8])-> Vec<u8>{
+        bin[..bin.len() - FINGERPRINT_LEN].to_vec()
+    }
+
     fn get_pack_info(&mut self, crate_package: &CratePackage, str_table: &StringTable){
         self.pack_info.read_from_package_section(crate_package.get_package_section(), &str_table);
     }
@@ -103,14 +108,48 @@ impl PackageContext{
         }
     }
 
-    pub fn decode_from_crate_package(&mut self, crate_package: &CratePackage)->StringTable{
+    fn check_fingerprint(&self, crate_package: &CratePackage, bin_all:&[u8])->bool{
+        PKCS::new().gen_digest_256(&bin_all[..bin_all.len() - FINGERPRINT_LEN]) == crate_package.finger_print
+    }
+
+    fn check_sigs(&self, crate_package: &CratePackage, bin_all:&[u8])->bool{
+        let bin_all = self.get_binary_before_sig(crate_package, bin_all);
+        let bin_crate = crate_package.get_crate_binary_section().bin.arr.as_slice();
+        for siginfo in self.sigs.iter(){
+            let mut actual_digest = vec![];
+            //FIXME this should be encapsulated as it's used in encode as well
+            match siginfo.typ {
+                0 => {
+                    actual_digest = siginfo.pkcs.gen_digest_256(bin_all.as_slice());
+                }
+                1 => {
+                    actual_digest = siginfo.pkcs.gen_digest_256(bin_crate);
+                }
+                _ => {panic!("sig type is not right!")}
+            }
+            let expect_digest = siginfo.pkcs.decode_pkcs_bin(siginfo.bin.as_slice());
+            if actual_digest != expect_digest {
+                return false
+            };
+        }
+        true
+    }
+
+    pub fn decode_from_crate_package(&mut self, bin:&[u8])->(CratePackage, StringTable){
+        let mut crate_package = CratePackage::decode_from_slice(bin);
         let mut str_table = StringTable::new();
         str_table.from_bytes(crate_package.string_table.arr.as_slice());
-        self.get_pack_info(crate_package, &str_table);
-        self.get_deps(crate_package, &str_table);
-        self.get_binary(crate_package);
-        self.get_sigs(crate_package);
-        return str_table;
+        self.get_pack_info(&crate_package, &str_table);
+        self.get_deps(&crate_package, &str_table);
+        self.get_binary(&crate_package);
+        self.get_sigs(&crate_package);
+        if self.check_fingerprint(&crate_package, bin) == false{
+            panic!("finger_print not right!");
+        }
+        if self.check_sigs(&crate_package, bin) == false{
+            panic!("sig not right!");
+        }
+        return (crate_package, str_table);
     }
 }
 
@@ -146,23 +185,6 @@ fn test_decode() {
         }
     }
 
-    fn get_sig_info1()->SigInfo{
-        SigInfo{
-            typ: 0,
-            size: 10,
-            bin: vec![10; 10],
-        }
-    }
-
-    fn get_sig_info2()->SigInfo{
-        SigInfo{
-            typ: 1,
-            size: 30,
-            bin: vec![15; 30],
-        }
-    }
-
-
     let mut crate_package = CratePackage::new();
     let mut package_context = PackageContext::new();
     let mut str_table = StringTable::new();
@@ -173,8 +195,12 @@ fn test_decode() {
     package_context.dep_infos.push(get_dep_info2());
     package_context.crate_binary.bytes = vec![5; 55];
 
-    package_context.sigs.push(get_sig_info1());
-    package_context.sigs.push(get_sig_info2());
+    let mut pkcs1 = PKCS::new();
+    pkcs1.load_from_file("test/cert.pem".to_string(), "test/key.pem".to_string(), "test/root-ca.pem".to_string());
+    package_context.add_sig(pkcs1, SIGTYPE::CRATEBIN);
+    let mut pkcs2 = PKCS::new();
+    pkcs2.load_from_file("test/cert.pem".to_string(), "test/key.pem".to_string(), "test/root-ca.pem".to_string());
+    package_context.add_sig(pkcs2, SIGTYPE::FILE);
 
     package_context.encode_to_crate_package(&mut str_table, &mut crate_package);
 
@@ -183,8 +209,6 @@ fn test_decode() {
     let crate_package:CratePackage = CratePackage::decode(&mut create_bincode_slice_decoder(bin.as_slice()), bin.as_slice()).unwrap();
 
     let mut pac = PackageContext::new();
-    pac.decode_from_crate_package(&crate_package);
-
+    let (crate_package, str_table) = pac.decode_from_crate_package(bin.as_slice());
     println!("{:#?}", pac);
-
 }
