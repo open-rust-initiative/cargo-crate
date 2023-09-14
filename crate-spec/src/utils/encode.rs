@@ -54,6 +54,7 @@ impl PackageContext{
     fn calc_sigs(&mut self, crate_package: &CratePackage){
         let bin_all = encode2vec_by_bincode(crate_package);
         let bin_all = self.get_binary_before_sig(crate_package, bin_all.as_slice());
+        eprintln!("{:?}", bin_all);
         let bin_crate = crate_package.get_crate_binary_section().bin.arr.as_slice();
         self.sigs.iter_mut().for_each(|siginfo|{
             let mut digest = vec![];

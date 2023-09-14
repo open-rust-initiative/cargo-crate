@@ -64,9 +64,16 @@ impl PackageContext{
         let mut buf = vec![];
         let ds_size = crate_package.section_index.get_datasection_size_without_sig();
         let total_size = crate_package.crate_header.ds_offset as usize + ds_size;
+        if crate_package.section_index.get_sig_num() != self.sigs.len() && self.sigs.len() > 0{
+            assert!(crate_package.section_index.get_sig_num() == 0);
+
+        }else{
+
+        }
         buf = bin[..total_size].to_vec();
-        let zero_begin = crate_package.crate_header.si_offset as usize;
-        let zero_end = crate_package.crate_header.si_offset as usize + crate_package.section_index.get_none_sig_size();
+        let zero_begin = crate_package.crate_header.si_offset as usize + crate_package.section_index.get_none_sig_size();
+        let zero_end = crate_package.crate_header.si_offset as usize + crate_package.crate_header.si_size as usize;
+        eprintln!("{:?}, {:?}", zero_begin, zero_end);
         //FIXME this is not efficient
         for i in zero_begin..zero_end{
             buf[i] = 0;
@@ -115,6 +122,7 @@ impl PackageContext{
     fn check_sigs(&self, crate_package: &CratePackage, bin_all:&[u8])->bool{
         let bin_all = self.get_binary_before_sig(crate_package, bin_all);
         let bin_crate = crate_package.get_crate_binary_section().bin.arr.as_slice();
+        eprint!("{:?}", bin_all);
         for siginfo in self.sigs.iter(){
             let mut actual_digest = vec![];
             //FIXME this should be encapsulated as it's used in encode as well
@@ -193,7 +201,7 @@ fn test_decode() {
 
     package_context.dep_infos.push(get_dep_info1());
     package_context.dep_infos.push(get_dep_info2());
-    package_context.crate_binary.bytes = vec![5; 55];
+    package_context.crate_binary.bytes = vec![5; 5];
 
     let mut pkcs1 = PKCS::new();
     pkcs1.load_from_file_writer("test/cert.pem".to_string(), "test/key.pem".to_string(), ["test/root-ca.pem".to_string()].to_vec());
@@ -202,10 +210,9 @@ fn test_decode() {
     pkcs2.load_from_file_writer("test/cert.pem".to_string(), "test/key.pem".to_string(), ["test/root-ca.pem".to_string()].to_vec());
     package_context.add_sig(pkcs2, SIGTYPE::FILE);
 
-    package_context.encode_to_crate_package(&mut str_table, &mut crate_package);
+    let bin = package_context.encode_to_crate_package(&mut str_table, &mut crate_package);
 
-    let bin = encode2vec_by_bincode(&crate_package);
-
+    //println!("{:#?}", crate_package);
     let crate_package:CratePackage = CratePackage::decode(&mut create_bincode_slice_decoder(bin.as_slice()), bin.as_slice()).unwrap();
 
     let mut pac = PackageContext::new();
