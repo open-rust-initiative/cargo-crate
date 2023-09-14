@@ -1,6 +1,6 @@
 
-use crate::utils::context::{DepInfo, NOT_SIG_NUM, PackageContext, PackageInfo, SigInfo, SIGTYPE, SrcTypePath, StringTable};
-use crate::utils::package::{CrateHeader, CratePackage, CRATEVERSION, DataSection, DataSectionCollectionType, DepTableSection, FINGERPRINT_LEN, get_datasection_type, MAGIC_NUMBER, Off, PackageSection, RawArrayType, SectionIndex, SectionIndexEntry, Size};
+use crate::utils::context::{DepInfo, NOT_SIG_NUM, PackageContext, PackageInfo, SigInfo,  SrcTypePath, StringTable};
+use crate::utils::package::{ CratePackage, CRATEVERSION,   FINGERPRINT_LEN, get_datasection_type, MAGIC_NUMBER, Off,  RawArrayType,  SectionIndexEntry, Size};
 
 use crate::utils::package::gen_bincode::{encode2vec_by_bincode};
 use crate::utils::pkcs::PKCS;
@@ -57,7 +57,7 @@ impl PackageContext{
         let bin_all = self.get_binary_before_sig(crate_package, bin_all.as_slice());
         let bin_crate = crate_package.get_crate_binary_section().bin.arr.as_slice();
         self.sigs.iter_mut().for_each(|siginfo|{
-            let mut digest = vec![];
+            let digest;
             match siginfo.typ {
                 0 => {
                     digest = siginfo.pkcs.gen_digest_256(bin_all.as_slice());

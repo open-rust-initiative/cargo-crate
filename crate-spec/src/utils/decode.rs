@@ -1,8 +1,7 @@
 
 
 use crate::utils::context::{DepInfo, PackageContext, PackageInfo, SigInfo, SIGTYPE, SrcTypePath, StringTable};
-use crate::utils::package::{CrateBinarySection, CratePackage, DataSection, DepTableSection, FINGERPRINT_LEN,  PackageSection, SectionIndex, SigStructureSection, Size, Type};
-use crate::utils::package::gen_bincode::create_bincode_slice_decoder;
+use crate::utils::package::{CrateBinarySection, CratePackage, DataSection, DepTableSection, FINGERPRINT_LEN,  PackageSection, SectionIndex, SigStructureSection};
 
 use crate::utils::pkcs::PKCS;
 
@@ -122,7 +121,7 @@ impl PackageContext{
         let bin_all = self.get_binary_before_sig(crate_package, bin_all);
         let bin_crate = crate_package.get_crate_binary_section().bin.arr.as_slice();
         for siginfo in self.sigs.iter(){
-            let mut actual_digest = vec![];
+            let actual_digest ;
             //FIXME this should be encapsulated as it's used in encode as well
             match siginfo.typ {
                 0 => {
