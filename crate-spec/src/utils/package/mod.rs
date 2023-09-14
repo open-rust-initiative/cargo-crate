@@ -1,6 +1,8 @@
 //!package definition
 pub mod bin;
 pub mod gen_bincode;
+mod pkcs;
+
 use bincode::{Decode, Encode};
 use crate::utils::package::gen_bincode::encode_size_by_bincode;
 
