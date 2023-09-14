@@ -196,10 +196,10 @@ fn test_decode() {
     package_context.crate_binary.bytes = vec![5; 55];
 
     let mut pkcs1 = PKCS::new();
-    pkcs1.load_from_file("test/cert.pem".to_string(), "test/key.pem".to_string(), "test/root-ca.pem".to_string());
+    pkcs1.load_from_file_writer("test/cert.pem".to_string(), "test/key.pem".to_string(), ["test/root-ca.pem".to_string()].to_vec());
     package_context.add_sig(pkcs1, SIGTYPE::CRATEBIN);
     let mut pkcs2 = PKCS::new();
-    pkcs2.load_from_file("test/cert.pem".to_string(), "test/key.pem".to_string(), "test/root-ca.pem".to_string());
+    pkcs2.load_from_file_writer("test/cert.pem".to_string(), "test/key.pem".to_string(), ["test/root-ca.pem".to_string()].to_vec());
     package_context.add_sig(pkcs2, SIGTYPE::FILE);
 
     package_context.encode_to_crate_package(&mut str_table, &mut crate_package);
@@ -209,6 +209,11 @@ fn test_decode() {
     let crate_package:CratePackage = CratePackage::decode(&mut create_bincode_slice_decoder(bin.as_slice()), bin.as_slice()).unwrap();
 
     let mut pac = PackageContext::new();
+    let mut pkcs1 = PKCS::new();
+    pkcs1.load_from_file_reader(["test/root-ca.pem".to_string()].to_vec());
+    let mut pkcs2 = PKCS::new();
+    pkcs2.load_from_file_reader(["test/root-ca.pem".to_string()].to_vec());
+    
     let (crate_package, str_table) = pac.decode_from_crate_package(bin.as_slice());
     println!("{:#?}", pac);
 }

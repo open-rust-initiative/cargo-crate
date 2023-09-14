@@ -15,7 +15,7 @@ use openssl::x509::X509;
 pub struct PKCS{
     cert_bin: Vec<u8>,
     pkey_bin: Vec<u8>,
-    root_ca_bin: Vec<u8>
+    root_ca_bins: Vec<Vec<u8>>
 }
 
 impl Debug for PKCS{
@@ -29,25 +29,37 @@ impl PKCS{
         Self{
             cert_bin: vec![],
             pkey_bin: vec![],
-            root_ca_bin: vec![],
+            root_ca_bins: vec![],
         }
     }
-    pub fn load_from_file(&mut self, cert_path: String, pkey_path: String, ca_path: String){
+    pub fn load_from_file_writer(&mut self, cert_path: String, pkey_path: String, ca_paths: Vec<String>){
         //just for demo
         self.cert_bin = fs::read(Path::new(cert_path.as_str())).unwrap();
         self.pkey_bin = fs::read(Path::new(pkey_path.as_str())).unwrap();
-        self.root_ca_bin = fs::read(Path::new(ca_path.as_str())).unwrap();
+        for ca_path in ca_paths{
+            self.root_ca_bins.push(fs::read(Path::new(ca_path.as_str())).unwrap());
+        }
+    }
+
+    pub fn load_from_file_reader(&mut self,  ca_paths: Vec<String>){
+        //just for demo
+        for ca_path in ca_paths{
+            self.root_ca_bins.push(fs::read(Path::new(ca_path.as_str())).unwrap());
+        }
     }
 
     pub fn encode_pkcs_bin(&self, message:&[u8])->Vec<u8>{
+        //FIXME current we don't support middle certs
         let cert = X509::from_pem(self.cert_bin.as_slice()).unwrap();
         let certs = Stack::new().unwrap();
         let flags = Pkcs7Flags::STREAM;
         let pkey = PKey::private_key_from_pem(self.pkey_bin.as_slice()).unwrap();
         let mut store_builder = X509StoreBuilder::new().expect("should succeed");
 
-        let root_ca = X509::from_pem(self.root_ca_bin.as_slice()).unwrap();
-        store_builder.add_cert(root_ca).expect("should succeed");
+        for root_ca_bin in self.root_ca_bins.iter() {
+            let root_ca = X509::from_pem(root_ca_bin.as_slice()).unwrap();
+            store_builder.add_cert(root_ca).expect("should succeed");
+        }
 
         let store = store_builder.build();
 
@@ -61,14 +73,15 @@ impl PKCS{
     }
 
     pub fn decode_pkcs_bin(&self, signed_bin:&[u8])->Vec<u8>{
-        let cert = X509::from_pem(self.cert_bin.as_slice()).unwrap();
+        //FIXME maybe all pkcs section should share same root cas
         let certs = Stack::new().unwrap();
         let flags = Pkcs7Flags::STREAM;
-        let pkey = PKey::private_key_from_pem(self.pkey_bin.as_slice()).unwrap();
         let mut store_builder = X509StoreBuilder::new().expect("should succeed");
 
-        let root_ca = X509::from_pem(self.root_ca_bin.as_slice()).unwrap();
-        store_builder.add_cert(root_ca).expect("should succeed");
+        for root_ca_bin in self.root_ca_bins.iter() {
+            let root_ca = X509::from_pem(root_ca_bin.as_slice()).unwrap();
+            store_builder.add_cert(root_ca).expect("should succeed");
+        }
 
         let store = store_builder.build();
 
@@ -91,7 +104,7 @@ impl PKCS{
 #[test]
 fn test_PKCS(){
     let mut pkcs = PKCS::new();
-    pkcs.load_from_file("test/cert.pem".to_string(), "test/key.pem".to_string(), "test/root-ca.pem".to_string());
+    pkcs.load_from_file_writer("test/cert.pem".to_string(), "test/key.pem".to_string(), ["test/root-ca.pem".to_string()].to_vec());
     let bin = "Hello rust!".to_string();
     let digest = pkcs.gen_digest_256(bin.as_bytes());
     let signedData = pkcs.encode_pkcs_bin(digest.as_slice());
@@ -103,7 +116,9 @@ fn test_PKCS(){
 fn test_pkcs7(){
     let cert = include_bytes!("../../test/cert.pem");
     let cert = X509::from_pem(cert).unwrap();
-    let certs = Stack::new().unwrap();
+    let mut certs = Stack::new().unwrap();
+    certs.push(X509::from_pem(include_bytes!("../../test/cert1.pem")).unwrap()).unwrap();
+
     let message = "foo";
     let flags = Pkcs7Flags::STREAM;
     let pkey = include_bytes!("../../test/key.pem");
@@ -127,6 +142,16 @@ fn test_pkcs7(){
         Pkcs7::from_smime(signed.as_slice()).expect("should succeed");
 
     let mut output = Vec::new();
+    let certs = Stack::new().unwrap();
+
+    let mut store_builder = X509StoreBuilder::new().expect("should succeed");
+    let root_ca = include_bytes!("../../test/cert1.pem");
+    let root_ca = X509::from_pem(root_ca).unwrap();
+    let root_ca = include_bytes!("../../test/root-ca.pem");
+    let root_ca = X509::from_pem(root_ca).unwrap();
+    store_builder.add_cert(root_ca).expect("should succeed");
+    let store = store_builder.build();
+
     pkcs7_decoded
         .verify(&certs, &store, None, Some(&mut output), flags)
         .expect("should succeed");

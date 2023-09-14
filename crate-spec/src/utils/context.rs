@@ -44,6 +44,7 @@ pub struct PackageContext {
     pub dep_infos: Vec<DepInfo>,
     pub crate_binary: CrateBinary,
     pub sigs: Vec<SigInfo>,
+    pub root_cas: Vec<Vec<u8>>
     // pack_section_size: Option<u32>,
     // dep_table_section_size: Option<u32>,
     // crate_binary_section_size: Option<u32>
@@ -73,6 +74,7 @@ impl PackageContext{
             // dep_table_section_size: None,
             // crate_binary_section_size: None
             sigs: vec![],
+            root_cas: vec![],
         }
     }
 
