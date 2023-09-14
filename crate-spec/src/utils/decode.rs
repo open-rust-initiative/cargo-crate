@@ -159,7 +159,7 @@ impl PackageContext{
 }
 
 #[test]
-fn test_decode() {
+fn test_encode_decode() {
     fn get_pack_info()->PackageInfo{
         PackageInfo{
             name: "rust-crate".to_string(),
@@ -190,29 +190,34 @@ fn test_decode() {
         }
     }
 
-    let mut crate_package = CratePackage::new();
+    fn get_crate_binary()->Vec<u8>{
+        [15;100].to_vec()
+    }
+
+    fn get_sign()->PKCS{
+        let mut pkcs1 = PKCS::new();
+        pkcs1.load_from_file_writer("test/cert.pem".to_string(), "test/key.pem".to_string(), ["test/root-ca.pem".to_string()].to_vec());
+        pkcs1
+    }
+
     let mut package_context = PackageContext::new();
-    let mut str_table = StringTable::new();
 
     package_context.pack_info = get_pack_info();
-
     package_context.dep_infos.push(get_dep_info1());
     package_context.dep_infos.push(get_dep_info2());
-    package_context.crate_binary.bytes = vec![5; 5];
+    package_context.crate_binary.bytes = get_crate_binary();
+    package_context.add_sig(get_sign(), SIGTYPE::CRATEBIN);
+    package_context.add_sig(get_sign(), SIGTYPE::FILE);
 
-    let mut pkcs1 = PKCS::new();
-    pkcs1.load_from_file_writer("test/cert.pem".to_string(), "test/key.pem".to_string(), ["test/root-ca.pem".to_string()].to_vec());
-    package_context.add_sig(pkcs1, SIGTYPE::CRATEBIN);
-    let mut pkcs2 = PKCS::new();
-    pkcs2.load_from_file_writer("test/cert.pem".to_string(), "test/key.pem".to_string(), ["test/root-ca.pem".to_string()].to_vec());
-    package_context.add_sig(pkcs2, SIGTYPE::FILE);
+    let (_crate_package, _str_table, bin) = package_context.encode_to_crate_package();
 
-    let bin = package_context.encode_to_crate_package(&mut str_table, &mut crate_package);
 
-    //println!("{:#?}", _crate_package);
+    let mut package_context_new = PackageContext::new();
+    package_context_new.set_root_cas_bin(PKCS::get_root_ca_bins(["test/root-ca.pem".to_string()].to_vec()));
+    let (_crate_package_new, _str_table) = package_context_new.decode_from_crate_package(bin.as_slice());
 
-    let mut pac = PackageContext::new();
-    pac.set_root_cas_bin(PKCS::get_root_ca_bins(["test/root-ca.pem".to_string()].to_vec()));
-    let (_crate_package, _str_table) = pac.decode_from_crate_package(bin.as_slice());
-    //println!("{:#?}", pac);
+    assert_eq!(get_pack_info(), package_context_new.pack_info);
+    assert_eq!(get_dep_info1(), package_context_new.dep_infos[0]);
+    assert_eq!(get_dep_info2(), package_context_new.dep_infos[1]);
+    assert_eq!(get_crate_binary(), package_context_new.crate_binary.bytes);
 }

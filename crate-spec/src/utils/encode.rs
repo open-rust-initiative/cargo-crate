@@ -1,5 +1,5 @@
 
-use crate::utils::context::{DepInfo, NOT_SIG_NUM, PackageContext, PackageInfo, SigInfo,  SrcTypePath, StringTable};
+use crate::utils::context::{NOT_SIG_NUM, PackageContext,  StringTable};
 use crate::utils::package::{ CratePackage, CRATEVERSION,   FINGERPRINT_LEN, get_datasection_type, MAGIC_NUMBER, Off,  RawArrayType,  SectionIndexEntry, Size};
 
 use crate::utils::package::gen_bincode::{encode2vec_by_bincode};
@@ -105,86 +105,13 @@ impl PackageContext{
 
 
     //1 2 3
-    pub fn encode_to_crate_package(&mut self, str_table: &mut StringTable, crate_package: &mut CratePackage)->Vec<u8>{
-        self.encode_to_crate_package_before_sig(str_table, crate_package, );
-        self.encode_sig_to_crate_package(crate_package);
-        self.encode_to_crate_package_after_sig(crate_package);
-        encode2vec_by_bincode(crate_package)
+    pub fn encode_to_crate_package(&mut self)->(CratePackage, StringTable, Vec<u8>){
+        let mut crate_package =  CratePackage::new();
+        let mut str_table = StringTable::new();
+        self.encode_to_crate_package_before_sig(&mut str_table, &mut crate_package, );
+        self.encode_sig_to_crate_package(&mut crate_package);
+        self.encode_to_crate_package_after_sig(&mut crate_package);
+        let bin = encode2vec_by_bincode(&crate_package);
+        (crate_package, str_table, bin)
     }
 }
-
-
-
-
-#[test]
-fn test_encode() {
-    fn get_pack_info()->PackageInfo{
-        PackageInfo{
-            name: "rust-crate".to_string(),
-            version: "1.0.0".to_string(),
-            license: "MIT".to_string(),
-            authors: vec!["shuibing".to_string(), "rust".to_string()],
-        }
-    }
-
-    fn get_dep_info1()->DepInfo{
-        DepInfo{
-            name: "toml".to_string(),
-            ver_req: "1.0.0".to_string(),
-            src: SrcTypePath::CratesIo,
-            src_platform: "ALL".to_string(),
-            dump: true,
-        }
-    }
-
-
-    fn get_dep_info2()->DepInfo{
-        DepInfo{
-            name: "crate-spec".to_string(),
-            ver_req: ">=0.8.0".to_string(),
-            src: SrcTypePath::Git("http://git.com".to_string()),
-            src_platform: "windows".to_string(),
-            dump: true,
-        }
-    }
-
-    fn get_sig_info1()->SigInfo{
-        SigInfo{
-            typ: 0,
-            size: 10,
-            bin: vec![10; 10],
-            pkcs: PKCS::new(),
-        }
-    }
-
-    fn get_sig_info2()->SigInfo{
-        SigInfo{
-            typ: 1,
-            size: 30,
-            bin: vec![15; 30],
-            pkcs: PKCS::new()
-        }
-    }
-
-
-    let mut crate_package = CratePackage::new();
-    let mut package_context = PackageContext::new();
-    let mut str_table = StringTable::new();
-
-    package_context.pack_info = get_pack_info();
-
-    package_context.dep_infos.push(get_dep_info1());
-    package_context.dep_infos.push(get_dep_info2());
-    package_context.crate_binary.bytes = vec![5; 55];
-
-    package_context.sigs.push(get_sig_info1());
-    package_context.sigs.push(get_sig_info2());
-
-    let bin = package_context.encode_to_crate_package(&mut str_table, &mut crate_package);
-
-    let crate_package = CratePackage::decode_from_slice(bin.as_slice());
-    //let crate_package:CratePackage = CratePackage::decode(&mut create_bincode_slice_decoder(bin.as_slice()), bin.as_slice()).unwrap();
-
-    println!("{:#?}", crate_package);
-}
-

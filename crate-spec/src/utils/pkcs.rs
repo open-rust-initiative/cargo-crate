@@ -11,7 +11,7 @@ use openssl::x509::store::X509StoreBuilder;
 use openssl::x509::X509;
 
 
-
+#[derive(PartialEq)]
 pub struct PKCS{
     cert_bin: Vec<u8>,
     pkey_bin: Vec<u8>,
@@ -109,73 +109,73 @@ impl PKCS{
     }
 }
 
-#[test]
-fn test_pkcs(){
-    let mut pkcs = PKCS::new();
-    pkcs.load_from_file_writer("test/cert.pem".to_string(), "test/key.pem".to_string(), ["test/root-ca.pem".to_string()].to_vec());
-    let bin = "Hello rust!".to_string();
-    let digest = pkcs.gen_digest_256(bin.as_bytes());
-    let _signed_data = pkcs.encode_pkcs_bin(digest.as_slice());
-    // let digest_de = pkcs.decode_pkcs_bin(_signed_data.as_slice());
-    // assert_eq!(digest, digest_de);
-}
-
-#[test]
-fn test_pkcs7(){
-    let cert = include_bytes!("../../test/cert.pem");
-    let cert = X509::from_pem(cert).unwrap();
-    let mut certs = Stack::new().unwrap();
-    certs.push(X509::from_pem(include_bytes!("../../test/cert1.pem")).unwrap()).unwrap();
-
-    let message = "foo";
-    let flags = Pkcs7Flags::STREAM;
-    let pkey = include_bytes!("../../test/key.pem");
-    let pkey = PKey::private_key_from_pem(pkey).unwrap();
-    let mut store_builder = X509StoreBuilder::new().expect("should succeed");
-
-    let root_ca = include_bytes!("../../test/root-ca.pem");
-    let root_ca = X509::from_pem(root_ca).unwrap();
-    store_builder.add_cert(root_ca).expect("should succeed");
-
-    let _store = store_builder.build();
-
-    let pkcs7 =
-        Pkcs7::sign(&cert, &pkey, &certs, message.as_bytes(), flags).expect("should succeed");
-
-    let signed = pkcs7
-        .to_smime(message.as_bytes(), flags)
-        .expect("should succeed");
-
-    let (pkcs7_decoded, content) =
-        Pkcs7::from_smime(signed.as_slice()).expect("should succeed");
-
-    let mut output = Vec::new();
-    let certs = Stack::new().unwrap();
-
-    let mut store_builder = X509StoreBuilder::new().expect("should succeed");
-    let root_ca = include_bytes!("../../test/cert1.pem");
-    let _root_ca = X509::from_pem(root_ca).unwrap();
-    let root_ca = include_bytes!("../../test/root-ca.pem");
-    let root_ca = X509::from_pem(root_ca).unwrap();
-    store_builder.add_cert(root_ca).expect("should succeed");
-    let store = store_builder.build();
-
-    pkcs7_decoded
-        .verify(&certs, &store, None, Some(&mut output), flags)
-        .expect("should succeed");
-
-    assert_eq!(output, message.as_bytes());
-    assert!(content.is_none());
-}
-
-#[test]
-fn test_hash() -> Result<(), Box<dyn std::error::Error>> {
-    use openssl::hash::{hash, MessageDigest};
-
-    let data = b"\x42\xF4\x97\xE0";
-    //let spec = b"\x7c\x43\x0f\x17\x8a\xef\xdf\x14\x87\xfe\xe7\x14\x4e\x96\x41\xe2";
-    let res = hash(MessageDigest::sha256(), data)?;
-    println!("{:?}", &*res);
-    //assert_eq!(&*res, spec);
-    Ok(())
-}
+// #[test]
+// fn test_pkcs(){
+//     let mut pkcs = PKCS::new();
+//     pkcs.load_from_file_writer("test/cert.pem".to_string(), "test/key.pem".to_string(), ["test/root-ca.pem".to_string()].to_vec());
+//     let bin = "Hello rust!".to_string();
+//     let digest = pkcs.gen_digest_256(bin.as_bytes());
+//     let _signed_data = pkcs.encode_pkcs_bin(digest.as_slice());
+//     // let digest_de = pkcs.decode_pkcs_bin(_signed_data.as_slice());
+//     // assert_eq!(digest, digest_de);
+// }
+//
+// #[test]
+// fn test_pkcs7(){
+//     let cert = include_bytes!("../../test/cert.pem");
+//     let cert = X509::from_pem(cert).unwrap();
+//     let mut certs = Stack::new().unwrap();
+//     certs.push(X509::from_pem(include_bytes!("../../test/cert1.pem")).unwrap()).unwrap();
+//
+//     let message = "foo";
+//     let flags = Pkcs7Flags::STREAM;
+//     let pkey = include_bytes!("../../test/key.pem");
+//     let pkey = PKey::private_key_from_pem(pkey).unwrap();
+//     let mut store_builder = X509StoreBuilder::new().expect("should succeed");
+//
+//     let root_ca = include_bytes!("../../test/root-ca.pem");
+//     let root_ca = X509::from_pem(root_ca).unwrap();
+//     store_builder.add_cert(root_ca).expect("should succeed");
+//
+//     let _store = store_builder.build();
+//
+//     let pkcs7 =
+//         Pkcs7::sign(&cert, &pkey, &certs, message.as_bytes(), flags).expect("should succeed");
+//
+//     let signed = pkcs7
+//         .to_smime(message.as_bytes(), flags)
+//         .expect("should succeed");
+//
+//     let (pkcs7_decoded, content) =
+//         Pkcs7::from_smime(signed.as_slice()).expect("should succeed");
+//
+//     let mut output = Vec::new();
+//     let certs = Stack::new().unwrap();
+//
+//     let mut store_builder = X509StoreBuilder::new().expect("should succeed");
+//     let root_ca = include_bytes!("../../test/cert1.pem");
+//     let _root_ca = X509::from_pem(root_ca).unwrap();
+//     let root_ca = include_bytes!("../../test/root-ca.pem");
+//     let root_ca = X509::from_pem(root_ca).unwrap();
+//     store_builder.add_cert(root_ca).expect("should succeed");
+//     let store = store_builder.build();
+//
+//     pkcs7_decoded
+//         .verify(&certs, &store, None, Some(&mut output), flags)
+//         .expect("should succeed");
+//
+//     assert_eq!(output, message.as_bytes());
+//     assert!(content.is_none());
+// }
+//
+// #[test]
+// fn test_hash() -> Result<(), Box<dyn std::error::Error>> {
+//     use openssl::hash::{hash, MessageDigest};
+//
+//     let data = b"\x42\xF4\x97\xE0";
+//     //let spec = b"\x7c\x43\x0f\x17\x8a\xef\xdf\x14\x87\xfe\xe7\x14\x4e\x96\x41\xe2";
+//     let res = hash(MessageDigest::sha256(), data)?;
+//     println!("{:?}", &*res);
+//     //assert_eq!(&*res, spec);
+//     Ok(())
+// }

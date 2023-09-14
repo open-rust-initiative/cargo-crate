@@ -7,7 +7,7 @@ use crate::utils::pkcs::PKCS;
 
 pub const NOT_SIG_NUM:usize = 3;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct SigInfo{
     pub typ:u32,
     pub size:usize,
@@ -41,7 +41,7 @@ impl SigInfo{
 }
 
 ///package context contains package's self and dependency package info
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct PackageContext {
     pub pack_info: PackageInfo,
     pub dep_infos: Vec<DepInfo>,
@@ -159,7 +159,7 @@ impl PackageContext {
     // }
 }
 ///package's info
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct PackageInfo {
     pub name: String,
     pub version: String,
@@ -209,7 +209,7 @@ impl PackageInfo{
 }
 
 ///dependencies' info
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DepInfo {
     pub name: String,
     pub ver_req: String,
@@ -297,7 +297,7 @@ impl DepInfo{
 }
 
 ///dependencies' src type and path
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum SrcTypePath{
     CratesIo,
     Git(String),
@@ -382,7 +382,7 @@ impl StringTable{
         }
     }
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct CrateBinary {
     //FIXME this maybe change to for fast read
     pub bytes:Vec<u8>,
