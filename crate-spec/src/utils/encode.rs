@@ -1,5 +1,5 @@
 use std::u32;
-use crate::utils::context::{BinaryLayout, CrateBinary, DepInfo, PackageContext, PackageInfo, SigInfo, SIGTYPE, SrcTypePath, StringTable};
+use crate::utils::context::{BinaryLayout, CrateBinary, DepInfo, NotSigNum, PackageContext, PackageInfo, SigInfo, SIGTYPE, SrcTypePath, StringTable};
 use crate::utils::package::{CrateBinarySection, CrateHeader, CratePackage, CRATEVERSION, DataSection, DataSectionCollectionType, DepTableSection, FINGERPRINT_LEN, get_datasection_type, MAGIC_NUMBER, Off, PackageSection, RawArrayType, SectionIndex, SectionIndexEntry, Size};
 use crate::utils::package::bin::Encode;
 use crate::utils::package::gen_bincode::{create_bincode_slice_decoder, decode_slice_by_bincode, encode2vec_by_bincode};
@@ -43,7 +43,8 @@ impl CratePackage{
 
 
 impl PackageContext{
-    fn set_sigs(&self, crate_package: &mut CratePackage){
+    fn set_sigs(&self, crate_package: &mut CratePackage, non_sig_num:usize){
+        crate_package.data_sections.col.arr.truncate(non_sig_num);
         self.write_to_data_section_collection_sig(&mut crate_package.data_sections);
     }
 
@@ -54,7 +55,6 @@ impl PackageContext{
     fn calc_sigs(&mut self, crate_package: &CratePackage){
         let bin_all = encode2vec_by_bincode(crate_package);
         let bin_all = self.get_binary_before_sig(crate_package, bin_all.as_slice());
-        eprintln!("{:?}", bin_all);
         let bin_crate = crate_package.get_crate_binary_section().bin.arr.as_slice();
         self.sigs.iter_mut().for_each(|siginfo|{
             let mut digest = vec![];
@@ -81,15 +81,18 @@ impl PackageContext{
     fn encode_to_crate_package_before_sig(&self, str_table: &mut StringTable,  crate_package: &mut CratePackage, sig_num: usize){
         crate_package.set_magic_numer();
         self.set_pack_dep_bin(crate_package, str_table);
+        //this is setting fake sigsection
+        self.set_sigs(crate_package, NotSigNum);
         crate_package.set_section_index();
         crate_package.set_string_table(str_table);
-        crate_package.set_crate_header(sig_num);
+        crate_package.set_crate_header(0);
     }
 
     //2 sig
     fn encode_sig_to_crate_package(&mut self, crate_package: &mut CratePackage){
         self.calc_sigs(crate_package);
-        self.set_sigs(crate_package);
+        //this is setting true sigsection
+        self.set_sigs(crate_package, NotSigNum);
     }
 
     //3 after sig

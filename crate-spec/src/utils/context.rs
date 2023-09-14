@@ -4,6 +4,9 @@ use crate::utils::package::{CrateBinarySection, DataSection, DataSectionCollecti
 use crate::utils::package::gen_bincode::encode_size_by_bincode;
 use crate::utils::pkcs::PKCS;
 
+
+pub const NotSigNum:usize = 3;
+
 #[derive(Debug)]
 pub struct SigInfo{
     pub typ:u32,
@@ -64,9 +67,9 @@ pub enum DATASECTIONTYPE{
 
 
 
-impl PackageContext{
-    pub fn new()->Self{
-        Self{
+impl PackageContext {
+    pub fn new() -> Self {
+        Self {
             pack_info: PackageInfo::default(),
             crate_binary: CrateBinary::new(),
             dep_infos: vec![],
@@ -78,11 +81,11 @@ impl PackageContext{
         }
     }
 
-    pub fn set_root_cas_bin(&mut self, root_ca_bins: Vec<Vec<u8>>){
+    pub fn set_root_cas_bin(&mut self, root_ca_bins: Vec<Vec<u8>>) {
         self.root_cas = root_ca_bins;
     }
 
-    pub fn add_sig(&mut self, pkcs:PKCS, sign_type: SIGTYPE) ->usize{
+    pub fn add_sig(&mut self, pkcs: PKCS, sign_type: SIGTYPE) -> usize {
         let mut siginfo = SigInfo::new();
         siginfo.pkcs = pkcs;
         match sign_type {
@@ -93,11 +96,11 @@ impl PackageContext{
         self.sigs.len() - 1
     }
 
-    pub fn get_sig_num(&self)->usize{
+    pub fn get_sig_num(&self) -> usize {
         return self.sigs.len();
     }
 
-    pub fn write_to_data_section_collection_without_sig(&self, dsc: &mut DataSectionCollectionType, str_table: &mut StringTable){
+    pub fn write_to_data_section_collection_without_sig(&self, dsc: &mut DataSectionCollectionType, str_table: &mut StringTable) {
         let mut package_section = PackageSection::new();
         self.write_to_package_section(&mut package_section, str_table);
         dsc.col.arr.push(DataSection::PackageSection(package_section));
@@ -112,14 +115,13 @@ impl PackageContext{
         dsc.col.arr.push(DataSection::CrateBinarySection(binary_section));
     }
 
-   pub fn write_to_data_section_collection_sig(&self, dsc: &mut DataSectionCollectionType){
-        for siginfo in self.sigs.iter(){
+    pub fn write_to_data_section_collection_sig(&self, dsc: &mut DataSectionCollectionType) {
+        for siginfo in self.sigs.iter() {
             let mut sig = SigStructureSection::new();
             siginfo.write_to_sig_structure_section(&mut sig);
             dsc.col.arr.push(DataSection::SigStructureSection(sig));
         }
     }
-
 
    fn write_to_package_section(&self, ps: &mut PackageSection, str_table: &mut StringTable){
         self.pack_info.write_to_package_section(ps, str_table);

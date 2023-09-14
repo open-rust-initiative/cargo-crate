@@ -73,7 +73,6 @@ impl PackageContext{
         buf = bin[..total_size].to_vec();
         let zero_begin = crate_package.crate_header.si_offset as usize + crate_package.section_index.get_none_sig_size();
         let zero_end = crate_package.crate_header.si_offset as usize + crate_package.crate_header.si_size as usize;
-        eprintln!("{:?}, {:?}", zero_begin, zero_end);
         //FIXME this is not efficient
         for i in zero_begin..zero_end{
             buf[i] = 0;
@@ -122,7 +121,6 @@ impl PackageContext{
     fn check_sigs(&self, crate_package: &CratePackage, bin_all:&[u8])->bool{
         let bin_all = self.get_binary_before_sig(crate_package, bin_all);
         let bin_crate = crate_package.get_crate_binary_section().bin.arr.as_slice();
-        eprint!("{:?}", bin_all);
         for siginfo in self.sigs.iter(){
             let mut actual_digest = vec![];
             //FIXME this should be encapsulated as it's used in encode as well
@@ -218,5 +216,5 @@ fn test_decode() {
     let mut pac = PackageContext::new();
     pac.set_root_cas_bin(PKCS::get_root_ca_bins(["test/root-ca.pem".to_string()].to_vec()));
     let (crate_package, str_table) = pac.decode_from_crate_package(bin.as_slice());
-    println!("{:#?}", pac);
+    //println!("{:#?}", pac);
 }
