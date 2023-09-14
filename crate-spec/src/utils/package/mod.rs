@@ -159,8 +159,8 @@ pub struct CrateHeader{
     pub si_size: Size,
     pub si_offset: Off,
     pub si_num: Size,
-    pub si_not_sig_num: Size,
-    pub si_not_sig_size: Size,
+    // pub si_not_sig_num: Size,
+    // pub si_not_sig_size: Size,
     pub ds_offset: Off,
 }
 
@@ -172,8 +172,8 @@ impl CrateHeader{
             strtable_offset: Default::default(),
             si_num: Default::default(),
             si_size: Default::default(),
-            si_not_sig_size:Default::default(),
-            si_not_sig_num: Default::default(),
+            // si_not_sig_size:Default::default(),
+            // si_not_sig_num: Default::default(),
             si_offset: Default::default(),
             ds_offset: Default::default(),
         }

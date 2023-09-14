@@ -2,7 +2,7 @@ use std::collections::{HashMap};
 use std::io::BufReader;
 use crate::utils::package::{CrateBinarySection, DataSection, DataSectionCollectionType, DepTableEntry, DepTableSection, LenArrayType, PackageSection, RawArrayType, SigStructureSection, Size, Type};
 use crate::utils::package::gen_bincode::encode_size_by_bincode;
-
+#[derive(Debug)]
 pub struct SigInfo{
     pub typ:u32,
     pub size:usize,
@@ -34,6 +34,7 @@ impl SigInfo{
 }
 
 ///package context contains package's self and dependency package info
+#[derive(Debug)]
 pub struct PackageContext {
     pub pack_info: PackageInfo,
     pub dep_infos: Vec<DepInfo>,
@@ -125,6 +126,7 @@ impl PackageContext{
     }
 }
 ///package's info
+#[derive(Debug)]
 pub struct PackageInfo {
     pub name: String,
     pub version: String,
@@ -174,6 +176,7 @@ impl PackageInfo{
 }
 
 ///dependencies' info
+#[derive(Debug)]
 pub struct DepInfo {
     pub name: String,
     pub ver_req: String,
@@ -261,6 +264,7 @@ impl DepInfo{
 }
 
 ///dependencies' src type and path
+#[derive(Debug)]
 pub enum SrcTypePath{
     CratesIo,
     Git(String),
@@ -323,8 +327,9 @@ impl StringTable{
         let mut bytes = vec![];
         for off in offs{
             //FIXME we use little endian
-            bytes.extend(off.to_le_bytes());
-            bytes.extend(self.off2str.get(&off).unwrap().bytes());
+            let st = self.off2str.get(&off).unwrap().bytes().clone();
+            bytes.extend((st.len() as u32).to_le_bytes());
+            bytes.extend(st);
         }
         return bytes;
     }
@@ -344,7 +349,7 @@ impl StringTable{
         }
     }
 }
-
+#[derive(Debug)]
 pub struct CrateBinary {
     //FIXME this maybe change to for fast read
     pub bytes:Vec<u8>,

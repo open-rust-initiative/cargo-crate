@@ -24,8 +24,6 @@ impl CratePackage{
         self.crate_header.c_version = CRATEVERSION;
         self.crate_header.strtable_size = self.string_table.get_size() as Size;
         self.crate_header.strtable_offset = (self.crate_header.get_size() + self.magic_number.len()) as Size;
-        self.crate_header.si_not_sig_size = self.section_index.get_none_sig_size() as Size;
-        self.crate_header.si_not_sig_num = self.section_index.get_none_sig_num() as Size;
         self.crate_header.si_size = self.section_index.get_size() as Size + (fake_num * SectionIndexEntry::default().get_size()) as Size;
         self.crate_header.si_num = self.section_index.get_num() as Size + fake_num as Size;
         self.crate_header.si_offset = self.crate_header.strtable_offset + self.crate_header.strtable_size;
