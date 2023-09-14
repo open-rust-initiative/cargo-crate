@@ -127,7 +127,7 @@ impl PackageContext{
                 }
                 _ => {panic!("sig type is not right!")}
             }
-            let expect_digest = siginfo.pkcs.decode_pkcs_bin(siginfo.bin.as_slice());
+            let expect_digest = PKCS::decode_pkcs_bin(siginfo.bin.as_slice(), &self.root_cas);
             if actual_digest != expect_digest {
                 return false
             };
@@ -209,11 +209,7 @@ fn test_decode() {
     let crate_package:CratePackage = CratePackage::decode(&mut create_bincode_slice_decoder(bin.as_slice()), bin.as_slice()).unwrap();
 
     let mut pac = PackageContext::new();
-    let mut pkcs1 = PKCS::new();
-    pkcs1.load_from_file_reader(["test/root-ca.pem".to_string()].to_vec());
-    let mut pkcs2 = PKCS::new();
-    pkcs2.load_from_file_reader(["test/root-ca.pem".to_string()].to_vec());
-    
+    pac.set_root_cas_bin(PKCS::get_root_ca_bins(["test/root-ca.pem".to_string()].to_vec()));
     let (crate_package, str_table) = pac.decode_from_crate_package(bin.as_slice());
     println!("{:#?}", pac);
 }

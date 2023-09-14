@@ -78,6 +78,10 @@ impl PackageContext{
         }
     }
 
+    pub fn set_root_cas_bin(&mut self, root_ca_bins: Vec<Vec<u8>>){
+        self.root_cas = root_ca_bins;
+    }
+
     pub fn add_sig(&mut self, pkcs:PKCS, sign_type: SIGTYPE) ->usize{
         let mut siginfo = SigInfo::new();
         siginfo.pkcs = pkcs;
