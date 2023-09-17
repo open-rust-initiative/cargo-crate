@@ -1,57 +1,8 @@
 use std::collections::{HashMap};
-
-use crate::utils::package::{CrateBinarySection, DataSection, DataSectionCollectionType, DepTableEntry, DepTableSection, LenArrayType, PackageSection, RawArrayType, SigStructureSection, Size, Type};
-use crate::utils::package::gen_bincode::encode_size_by_bincode;
+use crate::utils::package::{CrateBinarySection,  DepTableEntry,  LenArrayType, PackageSection, RawArrayType, SigStructureSection, Size, Type};
 use crate::utils::pkcs::PKCS;
 
-
 pub const NOT_SIG_NUM:usize = 3;
-
-#[derive(Debug, PartialEq)]
-pub struct SigInfo{
-    pub typ:u32,
-    pub size:usize,
-    pub bin: Vec<u8>,
-    pub pkcs: PKCS,
-}
-
-impl SigInfo{
-    pub fn new()->Self{
-        SigInfo{
-            typ: 0,
-            size: 0,
-            bin: vec![],
-            pkcs: PKCS::new(),
-        }
-    }
-
-    pub fn read_from_sig_structure_section(&mut self, sig: & SigStructureSection){
-        //FIXME current it's not right
-        self.typ = sig.sigstruct_type as u32;
-        self.size = sig.sigstruct_size as usize;
-        self.bin = sig.sigstruct_sig.arr.clone();
-    }
-
-    pub fn write_to_sig_structure_section(&self, sig: &mut SigStructureSection){
-        //FIXME current it's not right
-        sig.sigstruct_type = self.typ as Type;
-        sig.sigstruct_size = self.size as Size;
-        sig.sigstruct_sig = RawArrayType::from_vec(self.bin.clone());
-    }
-}
-
-///package context contains package's self and dependency package info
-#[derive(Debug, PartialEq)]
-pub struct PackageContext {
-    pub pack_info: PackageInfo,
-    pub dep_infos: Vec<DepInfo>,
-    pub crate_binary: CrateBinary,
-    pub sigs: Vec<SigInfo>,
-    pub root_cas: Vec<Vec<u8>>
-    // pack_section_size: Option<u32>,
-    // dep_table_section_size: Option<u32>,
-    // crate_binary_section_size: Option<u32>
-}
 
 pub enum SIGTYPE {
     FILE,
@@ -66,6 +17,15 @@ pub enum DATASECTIONTYPE{
 }
 
 
+///package context contains package's self and dependency package info
+#[derive(Debug, PartialEq)]
+pub struct PackageContext {
+    pub pack_info: PackageInfo,
+    pub dep_infos: Vec<DepInfo>,
+    pub crate_binary: CrateBinary,
+    pub sigs: Vec<SigInfo>,
+    pub root_cas: Vec<Vec<u8>>
+}
 
 impl PackageContext {
     pub fn new() -> Self {
@@ -73,16 +33,29 @@ impl PackageContext {
             pack_info: PackageInfo::default(),
             crate_binary: CrateBinary::new(),
             dep_infos: vec![],
-            // pack_section_size: None,
-            // dep_table_section_size: None,
-            // crate_binary_section_size: None
             sigs: vec![],
             root_cas: vec![],
         }
     }
 
-    pub fn set_root_cas_bin(&mut self, root_ca_bins: Vec<Vec<u8>>) {
-        self.root_cas = root_ca_bins;
+    pub fn set_package_info(&mut self, name:String, version:String, license:String, authors:Vec<String>){
+        self.pack_info = PackageInfo{name, version, license, authors}
+    }
+
+    pub fn add_dep_info(&mut self, name:String, ver_req:String, src:SrcTypePath, src_platform:String){
+        self.dep_infos.push(
+            DepInfo{
+                name,
+                ver_req,
+                src,
+                src_platform,
+                dump: true,
+            }
+        );
+    }
+
+    pub fn get_dep_num(&self)-> usize{
+        self.dep_infos.len()
     }
 
     pub fn add_sig(&mut self, pkcs: PKCS, sign_type: SIGTYPE) -> usize {
@@ -100,64 +73,16 @@ impl PackageContext {
         return self.sigs.len();
     }
 
-    pub fn write_to_data_section_collection_without_sig(&self, dsc: &mut DataSectionCollectionType, str_table: &mut StringTable) {
-        let mut package_section = PackageSection::new();
-        self.write_to_package_section(&mut package_section, str_table);
-        dsc.col.arr.push(DataSection::PackageSection(package_section));
-
-
-        let mut dep_table_section = DepTableSection::new();
-        self.write_to_dep_table_section(&mut dep_table_section, str_table);
-        dsc.col.arr.push(DataSection::DepTableSection(dep_table_section));
-
-        let mut binary_section = CrateBinarySection::new();
-        self.write_to_crate_binary_section(&mut binary_section);
-        dsc.col.arr.push(DataSection::CrateBinarySection(binary_section));
+    pub fn set_root_cas_bin(&mut self, root_ca_bins: Vec<Vec<u8>>) {
+        self.root_cas = root_ca_bins;
     }
 
-    pub fn write_to_data_section_collection_sig(&self, dsc: &mut DataSectionCollectionType) {
-        for siginfo in self.sigs.iter() {
-            let mut sig = SigStructureSection::new();
-            siginfo.write_to_sig_structure_section(&mut sig);
-            dsc.col.arr.push(DataSection::SigStructureSection(sig));
-        }
+    pub fn add_root_cas(&mut self, root_ca:Vec<u8>){
+        self.root_cas.push(root_ca);
     }
-
-   fn write_to_package_section(&self, ps: &mut PackageSection, str_table: &mut StringTable){
-        self.pack_info.write_to_package_section(ps, str_table);
-        encode_size_by_bincode(ps);
-    }
-
-   // fn read_from_package_section(&mut self, ps: &PackageSection, str_table: & StringTable){
-   //      self.pack_info.read_from_package_section(ps, str_table);
-   //  }
-
-   fn write_to_dep_table_section(&self, dts:&mut DepTableSection, str_table: &mut StringTable){
-        let mut entries = vec![];
-        self.dep_infos.iter().for_each(|dep_info|{
-            let mut dte = DepTableEntry::new();
-            dep_info.write_to_dep_table_entry(&mut dte, str_table);
-            entries.push(dte);
-        });
-        dts.entries = LenArrayType::from_vec(entries);
-    }
-
-    // fn read_from_dep_table_section(&mut self, dts:& DepTableSection, str_table: &mut StringTable){
-    //     dts.entries.arr.iter().for_each(|dte|{
-    //         let mut dep_info = DepInfo::default();
-    //         dep_info.read_from_dep_table_entry(dte, str_table);
-    //         self.dep_infos.push(dep_info);
-    //     });
-    // }
-
-    fn write_to_crate_binary_section(&self, cbs: &mut CrateBinarySection){
-        self.crate_binary.write_to_crate_binary_section(cbs);
-    }
-
-    // fn read_from_crate_biary_section(&mut self, cbs:& CrateBinarySection){
-    //     self.crate_binary.read_from_crate_biary_section(cbs);
-    // }
 }
+
+
 ///package's info
 #[derive(Debug, PartialEq)]
 pub struct PackageInfo {
@@ -223,10 +148,10 @@ impl DepInfo{
     pub fn default()->Self{
         Self{
             name: "".to_string(),
-            ver_req: "".to_string(),
+            ver_req: "default".to_string(),
             src: SrcTypePath::CratesIo,
-            src_platform: "".to_string(),
-            dump: false,
+            src_platform: "default".to_string(),
+            dump: true,
         }
     }
 
@@ -404,3 +329,35 @@ impl CrateBinary{
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub struct SigInfo{
+    pub typ:u32,
+    pub size:usize,
+    pub bin: Vec<u8>,
+    pub pkcs: PKCS,
+}
+
+impl SigInfo{
+    pub fn new()->Self{
+        SigInfo{
+            typ: 0,
+            size: 0,
+            bin: vec![],
+            pkcs: PKCS::new(),
+        }
+    }
+
+    pub fn read_from_sig_structure_section(&mut self, sig: & SigStructureSection){
+        //FIXME current it's not right
+        self.typ = sig.sigstruct_type as u32;
+        self.size = sig.sigstruct_size as usize;
+        self.bin = sig.sigstruct_sig.arr.clone();
+    }
+
+    pub fn write_to_sig_structure_section(&self, sig: &mut SigStructureSection){
+        //FIXME current it's not right
+        sig.sigstruct_type = self.typ as Type;
+        sig.sigstruct_size = self.size as Size;
+        sig.sigstruct_sig = RawArrayType::from_vec(self.bin.clone());
+    }
+}

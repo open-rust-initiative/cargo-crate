@@ -1,8 +1,8 @@
 
 use crate::utils::context::{NOT_SIG_NUM, PackageContext,  StringTable};
-use crate::utils::package::{ CratePackage, CRATEVERSION,   FINGERPRINT_LEN, get_datasection_type, MAGIC_NUMBER, Off,  RawArrayType,  SectionIndexEntry, Size};
+use crate::utils::package::{CrateBinarySection, CratePackage, CRATEVERSION, DataSection, DataSectionCollectionType, DepTableEntry, DepTableSection, FINGERPRINT_LEN, get_datasection_type, LenArrayType, MAGIC_NUMBER, Off, PackageSection, RawArrayType, SectionIndexEntry, SigStructureSection, Size};
 
-use crate::utils::package::gen_bincode::{encode2vec_by_bincode};
+use crate::utils::package::gen_bincode::{encode2vec_by_bincode, encode_size_by_bincode};
 use crate::utils::pkcs::PKCS;
 
 
@@ -43,6 +43,49 @@ impl CratePackage{
 
 
 impl PackageContext{
+    fn write_to_data_section_collection_without_sig(&self, dsc: &mut DataSectionCollectionType, str_table: &mut StringTable) {
+        let mut package_section = PackageSection::new();
+        self.write_to_package_section(&mut package_section, str_table);
+        dsc.col.arr.push(DataSection::PackageSection(package_section));
+
+
+        let mut dep_table_section = DepTableSection::new();
+        self.write_to_dep_table_section(&mut dep_table_section, str_table);
+        dsc.col.arr.push(DataSection::DepTableSection(dep_table_section));
+
+        let mut binary_section = CrateBinarySection::new();
+        self.write_to_crate_binary_section(&mut binary_section);
+        dsc.col.arr.push(DataSection::CrateBinarySection(binary_section));
+    }
+
+    pub fn write_to_data_section_collection_sig(&self, dsc: &mut DataSectionCollectionType) {
+        for siginfo in self.sigs.iter() {
+            let mut sig = SigStructureSection::new();
+            siginfo.write_to_sig_structure_section(&mut sig);
+            dsc.col.arr.push(DataSection::SigStructureSection(sig));
+        }
+    }
+
+    fn write_to_package_section(&self, ps: &mut PackageSection, str_table: &mut StringTable){
+        self.pack_info.write_to_package_section(ps, str_table);
+        encode_size_by_bincode(ps);
+    }
+
+
+    fn write_to_dep_table_section(&self, dts:&mut DepTableSection, str_table: &mut StringTable){
+        let mut entries = vec![];
+        self.dep_infos.iter().for_each(|dep_info|{
+            let mut dte = DepTableEntry::new();
+            dep_info.write_to_dep_table_entry(&mut dte, str_table);
+            entries.push(dte);
+        });
+        dts.entries = LenArrayType::from_vec(entries);
+    }
+
+
+    fn write_to_crate_binary_section(&self, cbs: &mut CrateBinarySection){
+        self.crate_binary.write_to_crate_binary_section(cbs);
+    }
     fn set_sigs(&self, crate_package: &mut CratePackage, non_sig_num:usize){
         crate_package.data_sections.col.arr.truncate(non_sig_num);
         self.write_to_data_section_collection_sig(&mut crate_package.data_sections);
