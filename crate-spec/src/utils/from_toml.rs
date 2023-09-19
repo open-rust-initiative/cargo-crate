@@ -5,7 +5,6 @@ use std::str::FromStr;
 use toml::Table;
 use crate::utils::context::{DepInfo, PackageContext, SrcTypePath};
 
-
 struct CrateToml{
     t:Table
 }
@@ -18,8 +17,13 @@ impl CrateToml{
     }
     pub fn from_file(path:String)->CrateToml{
         let f = fs::read(Path::new(path.as_str())).unwrap();
-        CrateToml::from_str(String::from_utf8(f).unwrap().as_str())
+        CrateToml::from_vec(f)
     }
+
+    pub fn from_vec(st_vec: Vec<u8>)->CrateToml{
+        CrateToml::from_str(String::from_utf8(st_vec).unwrap().as_str())
+    }
+
     pub fn from_str(st: &str)->CrateToml{
         CrateToml{
             t:Table::from_str(st).unwrap()
@@ -33,10 +37,10 @@ impl CrateToml{
         let version = package["version"].as_str().unwrap().to_string();
         let mut license="".to_string();
         let mut authors = Vec::<String>::new();
-        if package["license"].as_str().is_some(){
+        if package.contains_key("license"){
             license = package["license"].as_str().unwrap().to_string();
         }
-        if package["authors"].as_array().is_some(){
+        if package.contains_key("authors"){
             authors = package["authors"].as_array().unwrap().iter().map(|x|x.as_str().unwrap().to_string()).collect();
         }
         package_context.set_package_info(name, version, license, authors);
@@ -45,15 +49,12 @@ impl CrateToml{
     fn write_dep_info_to_package_context(&self, package_context: &mut PackageContext, deps: &Table, platform:String)->Vec<String>{
         let mut irresolve_depinfos = vec![];
         for dep in deps.iter(){
-            let name =  dep.0.to_string();
-            let val = dep.1;
             let mut dep_info = DepInfo::default();
             dep_info.src_platform = platform.to_string();
-            let mut req_ver = "default".to_string();
-            let mut dump = true;
-            let mut src = SrcTypePath::CratesIo;
+            dep_info.name = dep.0.to_string();
+            let val = dep.1;
             if val.is_str(){
-                dep_info.ver_req = val.to_string();
+                dep_info.ver_req = val.as_str().unwrap().to_string();
             }else{
                 let attri_map = val.as_table().unwrap();
                 let allow_keys = HashSet::from(["version".to_string(), "git".to_string(), "registry".to_string()]);
@@ -83,14 +84,18 @@ impl CrateToml{
 
     pub fn write_info_to_package_context(&self, package_context: &mut PackageContext)->Vec<String>{
         assert!(self.t.contains_key("package"));
-        unimplemented!()
+        self.write_package_info_to_package_context(package_context, self.t.get("package").unwrap().as_table().unwrap());
+        let excluded_crate;
+        //FIXME current platform is not considered, we only consider [dependencies], see https://course.rs/cargo/reference/specify-deps.html#build-dependencies
+        excluded_crate = self.write_dep_info_to_package_context(package_context, self.t.get("dependencies").unwrap().as_table().unwrap(), "".to_string());
+        excluded_crate
     }
 }
 
 #[test]
 fn test_toml(){
-    use toml::Table;
-    let f = fs::read("Cargo.toml".to_string()).unwrap();
-    let mut t = Table::from_str(String::from_utf8(f).unwrap().as_str()).unwrap();
-    println!("{:#?}", t["dependencies"].as_table().unwrap());
+    let toml = CrateToml::from_file("Cargo.toml".to_string());
+    let mut pack_context = PackageContext::new();
+    toml.write_info_to_package_context(&mut pack_context);
+    println!("{:#?}", pack_context);
 }
