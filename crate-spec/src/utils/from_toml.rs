@@ -94,8 +94,8 @@ impl CrateToml{
 
 #[test]
 fn test_toml(){
-    let toml = CrateToml::from_file("Cargo.toml".to_string());
+    let toml = CrateToml::from_file("test/test.toml".to_string());
     let mut pack_context = PackageContext::new();
-    toml.write_info_to_package_context(&mut pack_context);
+    println!("{:?}", toml.write_info_to_package_context(&mut pack_context));
     println!("{:#?}", pack_context);
 }
