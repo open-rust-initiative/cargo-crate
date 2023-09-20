@@ -26,14 +26,14 @@ fn run_cmd(cmd:&str, args:Vec<&str>, cur_dir:Option<&PathBuf>)->Result<String, S
 
 
 
-struct packing{
+struct Packing {
     pack_context:PackageContext,
     crate_path: PathBuf,
 }
 
-impl packing{
+impl Packing {
     fn new(crate_path:&str)->Self{
-        packing{
+        Packing {
             pack_context: PackageContext::new(),
             crate_path:  PathBuf::from_str(crate_path).unwrap()
         }
@@ -73,8 +73,9 @@ impl packing{
 }
 
 pub fn get_pack_context(path:&str)->PackageContext{
-    packing::new(path).get_pack_context()
+    Packing::new(path).get_pack_context()
 }
+
 
 #[test]
 fn test_cmd_cargo_package(){
