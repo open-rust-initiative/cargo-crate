@@ -80,6 +80,12 @@ impl PackageContext {
     pub fn add_root_cas(&mut self, root_ca:Vec<u8>){
         self.root_cas.push(root_ca);
     }
+
+    pub fn add_crate_bin(&mut self, bin:Vec<u8>){
+        let mut c = CrateBinary::new();
+        c.set_bin(bin);
+        self.crate_binary = c;
+    }
 }
 
 
@@ -318,6 +324,10 @@ impl CrateBinary{
         Self{
             bytes:vec![]
         }
+    }
+
+    pub fn set_bin(&mut self, bytes:Vec<u8>){
+        self.bytes = bytes;
     }
 
     pub fn write_to_crate_binary_section(&self, cbs: &mut CrateBinarySection){

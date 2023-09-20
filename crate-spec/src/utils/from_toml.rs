@@ -5,7 +5,7 @@ use std::str::FromStr;
 use toml::Table;
 use crate::utils::context::{DepInfo, PackageContext, SrcTypePath};
 
-struct CrateToml{
+pub struct CrateToml{
     t:Table
 }
 
