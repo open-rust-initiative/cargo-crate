@@ -8,3 +8,4 @@ edition = "2021"
 bincode = {version = "2.0.0-rc.3", features = ["serde", "alloc"]}
 openssl = "0.10.53"
 toml = "0.7.4"
+clap = {version = "4.3.0", features = ["derive"]}
