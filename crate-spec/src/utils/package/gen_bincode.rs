@@ -10,7 +10,6 @@ use bincode::enc::Encoder;
 
 use bincode::error::{DecodeError, EncodeError};
 
-
 use crate::utils::package::{DataSection, LenArrayType, PackageSection,  RawArrayType, DataSectionCollectionType, Size, DepTableSection, CrateBinarySection, Uchar, Type, SigStructureSection, CratePackage, SectionIndex, SectionIndexEntry, MAGIC_NUMBER, CrateHeader, FINGERPRINT_LEN, MagicNumberType, FingerPrintType};
 
 
@@ -172,38 +171,56 @@ fn is_magic_number(mn:&MagicNumberType)->bool{
     true
 }
 
+macro_rules! early_return {
+    ($condition:expr, $value:expr) => {
+        if !$condition {
+            return Err(DecodeError::Other($value));
+        }
+    };
+}
+
 impl CratePackage{
     pub fn encode_to_vec(&self)->Vec<u8>{
         encode2vec_by_bincode(self)
     }
 
-    pub fn decode_from_slice(bin:&[u8])->CratePackage{
-        Self::decode(&mut create_bincode_slice_decoder(bin), bin).unwrap()
+    pub fn decode_from_slice(bin:&[u8])->Result<CratePackage, String>{
+        match Self::decode(&mut create_bincode_slice_decoder(bin), bin){
+            Ok(t) => return Ok(t),
+            Err(DecodeError::Other(s)) => return Err(s.to_string()),
+            Err(x) => return Err(x.to_string())
+        }
     }
 
-
+    
     pub fn decode<D: Decoder>(decoder: &mut D, bin: &[u8]) -> Result<Self, DecodeError>{
         let magic_number:MagicNumberType  = Decode::decode(decoder).unwrap();
         if !is_magic_number(&magic_number){
-            panic!("magic number not right!");
+            return Err(DecodeError::Other("magic not right!"))
         }
 
         let crate_header:CrateHeader = Decode::decode(decoder)?;
 
-        assert!(bin.len() > (crate_header.strtable_size + crate_header.strtable_offset) as usize, "file format not right!");
+        if bin.len() > (crate_header.strtable_size + crate_header.strtable_offset) as usize{
+            return Err(DecodeError::Other("file format not right!"))
+        }
+
+        early_return!(bin.len() > (crate_header.strtable_size + crate_header.strtable_offset) as usize, "file format not right!");
         let string_table_bin = &bin[crate_header.strtable_offset as usize .. (crate_header.strtable_size + crate_header.strtable_offset) as usize];
         let string_table:RawArrayType<Uchar> = RawArrayType::<Uchar>::decode(&mut create_bincode_slice_decoder(string_table_bin), string_table_bin.len())?;
 
-        assert!(bin.len() > (crate_header.si_offset + crate_header.si_size) as usize, "file format not right!");
+        early_return!(bin.len() > (crate_header.si_offset + crate_header.si_size) as usize, "file format not right!");
         let section_index_bin = &bin[crate_header.si_offset as usize .. (crate_header.si_offset + crate_header.si_size) as usize];
         let section_index:SectionIndex = SectionIndex::decode(&mut create_bincode_slice_decoder(section_index_bin), crate_header.si_num as usize)?;
 
         let mut enum_size_off_in_bytes = vec![];
         section_index.entries.arr.iter().for_each(|index_entry| enum_size_off_in_bytes.push((index_entry.sh_type as i32, index_entry.sh_size as usize, index_entry.sh_offset as usize)));
 
+        early_return!(bin.len() > crate_header.ds_offset as usize, "file format not right!");
         let datasections_bin = &bin[crate_header.ds_offset as usize ..];
         let data_sections = DataSectionCollectionType::decode(&mut create_bincode_slice_decoder(datasections_bin), enum_size_off_in_bytes)?;
 
+        early_return!(bin[bin.len() - FINGERPRINT_LEN ..].len() == FINGERPRINT_LEN, "file format not right!");
         let fingerprint_bin = &bin[bin.len() - FINGERPRINT_LEN ..];
         let finger_print:FingerPrintType = Decode::decode(&mut create_bincode_slice_decoder(fingerprint_bin))?;
 
@@ -234,7 +251,9 @@ impl DataSectionCollectionType{
         let mut raw_col = DataSectionCollectionType::new();
         let mut consume_size = 0;
         for (type_id, size, offset) in enum_size_offset_in_bytes.into_iter(){
-            assert!(consume_size <= offset);
+            if consume_size > offset{
+                return Err(DecodeError::Other("file format not right!"))
+            }
             if consume_size < offset{
                 decoder.reader().consume(offset - consume_size);
                 consume_size = offset;
@@ -256,7 +275,7 @@ impl DataSectionCollectionType{
                     let sig_structure:SigStructureSection = Decode::decode(decoder)?;
                     raw_col.col.arr.push(DataSection::SigStructureSection(sig_structure));
                 }
-                _ => {panic!("unknown datasection type_id")}
+                _ => {return Err(DecodeError::Other("file format not right!"))}
             }
             consume_size += size;
         }

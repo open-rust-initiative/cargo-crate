@@ -1,0 +1,22 @@
+PackageInfo {
+    name: "crate-spec",
+    version: "0.1.0",
+    license: "",
+    authors: [],
+}
+[
+    DepInfo {
+        name: "openssl",
+        ver_req: "0.10.53",
+        src: CratesIo,
+        src_platform: "",
+        dump: true,
+    },
+    DepInfo {
+        name: "toml",
+        ver_req: "0.7.4",
+        src: CratesIo,
+        src_platform: "",
+        dump: true,
+    },
+]

@@ -22,16 +22,16 @@ impl Unpacking {
         self.cas_path.push(file_path.to_str().unwrap().to_string());
     }
 
-    pub fn get_unpack_context(self)->PackageContext{
+    pub fn get_unpack_context(self)->Result<PackageContext, String>{
         let mut package_context_new = PackageContext::new();
         package_context_new.set_root_cas_bin(PKCS::get_root_ca_bins(self.cas_path));
         let bin = fs::read(self.file_path).unwrap();
-        let (_crate_package_new, _str_table) = package_context_new.decode_from_crate_package(bin.as_slice());
-        package_context_new
+        let (_crate_package_new, _str_table) = package_context_new.decode_from_crate_package(bin.as_slice())?;
+        Ok(package_context_new)
     }
 }
 
-pub fn get_unpack_context(file_path:&str, cas_path:Vec<String>) ->PackageContext{
+pub fn get_unpack_context(file_path:&str, cas_path:Vec<String>) ->Result<PackageContext, String>{
     let mut unpack = Unpacking::new(file_path);
     cas_path.iter().for_each(|ca_path|unpack.add_ca_from_file(ca_path.as_str()));
     unpack.get_unpack_context()

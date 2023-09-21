@@ -111,8 +111,8 @@ impl PackageContext{
         }
     }
 
-    fn check_fingerprint(&self, crate_package: &CratePackage, bin_all:&[u8])->bool{
-        PKCS::new().gen_digest_256(&bin_all[..bin_all.len() - FINGERPRINT_LEN]) == crate_package.finger_print
+    fn check_fingerprint(&self, bin_all:&[u8])->bool{
+        PKCS::new().gen_digest_256(&bin_all[..bin_all.len() - FINGERPRINT_LEN]) == bin_all[bin_all.len() - FINGERPRINT_LEN..]
     }
 
     fn check_sigs(&self, crate_package: &CratePackage, bin_all:&[u8])->bool{
@@ -138,21 +138,21 @@ impl PackageContext{
         true
     }
 
-    pub fn decode_from_crate_package(&mut self, bin:&[u8])->(CratePackage, StringTable){
-        let crate_package = CratePackage::decode_from_slice(bin);
+    pub fn decode_from_crate_package(&mut self, bin:&[u8])->Result<(CratePackage, StringTable), String>{
+        if self.check_fingerprint( bin) == false{
+            return Err("fingerprint not right".to_string());
+        }
+        let crate_package = CratePackage::decode_from_slice(bin)?;
         let mut str_table = StringTable::new();
         str_table.read_bytes(crate_package.string_table.arr.as_slice());
         self.get_pack_info(&crate_package, &str_table);
         self.get_deps(&crate_package, &str_table);
         self.get_binary(&crate_package);
         self.get_sigs(&crate_package);
-        if self.check_fingerprint(&crate_package, bin) == false{
-            panic!("finger_print not right!");
-        }
         if self.check_sigs(&crate_package, bin) == false{
             panic!("sig not right!");
         }
-        return (crate_package, str_table);
+        return Ok((crate_package, str_table));
     }
 }
 
@@ -213,7 +213,7 @@ fn test_encode_decode() {
 
     let mut package_context_new = PackageContext::new();
     package_context_new.set_root_cas_bin(PKCS::get_root_ca_bins(["test/root-ca.pem".to_string()].to_vec()));
-    let (_crate_package_new, _str_table) = package_context_new.decode_from_crate_package(bin.as_slice());
+    let (_crate_package_new, _str_table) = package_context_new.decode_from_crate_package(bin.as_slice()).unwrap();
 
     assert_eq!(get_pack_info(), package_context_new.pack_info);
     assert_eq!(get_dep_info1(), package_context_new.dep_infos[0]);

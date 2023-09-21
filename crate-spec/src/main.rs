@@ -84,7 +84,11 @@ fn main() {
 
         //decode package from binary
         let pack_context = get_unpack_context(args.input.as_str(), args.root_ca_paths);
-
+        if pack_context.is_err(){
+            eprintln!("{}", pack_context.unwrap_err());
+            return;
+        }
+        let pack_context = pack_context.unwrap();
         //extract crate bin file
         let mut bin_path = PathBuf::from_str(args.output.as_str()).unwrap();
         bin_path.push(format!("{}-{}.crate", pack_context.pack_info.name, pack_context.pack_info.version));
