@@ -70,10 +70,15 @@ impl Packing {
         self.read_crate();
         self.pack_context
     }
+
 }
 
 pub fn get_pack_context(path:&str)->PackageContext{
     Packing::new(path).get_pack_context()
+}
+
+pub fn get_pack_name(pack: &PackageContext)->String{
+    format!("{}-{}.scrate", pack.pack_info.name, pack.pack_info.version)
 }
 
 
