@@ -184,13 +184,17 @@ impl CratePackage{
 
     pub fn decode<D: Decoder>(decoder: &mut D, bin: &[u8]) -> Result<Self, DecodeError>{
         let magic_number:MagicNumberType  = Decode::decode(decoder).unwrap();
-        assert_eq!(is_magic_number(&magic_number), true);
+        if !is_magic_number(&magic_number){
+            panic!("magic number not right!");
+        }
 
         let crate_header:CrateHeader = Decode::decode(decoder)?;
 
+        assert!(bin.len() > (crate_header.strtable_size + crate_header.strtable_offset) as usize, "file format not right!");
         let string_table_bin = &bin[crate_header.strtable_offset as usize .. (crate_header.strtable_size + crate_header.strtable_offset) as usize];
         let string_table:RawArrayType<Uchar> = RawArrayType::<Uchar>::decode(&mut create_bincode_slice_decoder(string_table_bin), string_table_bin.len())?;
 
+        assert!(bin.len() > (crate_header.si_offset + crate_header.si_size) as usize, "file format not right!");
         let section_index_bin = &bin[crate_header.si_offset as usize .. (crate_header.si_offset + crate_header.si_size) as usize];
         let section_index:SectionIndex = SectionIndex::decode(&mut create_bincode_slice_decoder(section_index_bin), crate_header.si_num as usize)?;
 
