@@ -1,6 +1,4 @@
-
-
-use crate::utils::context::{DepInfo, PackageContext, PackageInfo, SigInfo, SIGTYPE, SrcTypePath, StringTable};
+use crate::utils::context::{DepInfo, PackageContext, SigInfo, StringTable};
 use crate::utils::package::{CrateBinarySection, CratePackage, DataSection, DepTableSection, FINGERPRINT_LEN,  PackageSection, SectionIndex, SigStructureSection};
 
 use crate::utils::pkcs::PKCS;
@@ -104,7 +102,7 @@ impl PackageContext{
     fn get_sigs(&mut self, crate_package: &CratePackage){
         let sig_num = crate_package.section_index.get_sig_num();
         for no in 0.. sig_num{
-            let sig = crate_package.get_sig_structure_section(no as usize);
+            let sig = crate_package.get_sig_structure_section(no);
             let mut sig_info = SigInfo::new();
             sig_info.bin = sig.sigstruct_sig.arr.clone();
             sig_info.size = sig.sigstruct_size as usize;
@@ -160,6 +158,7 @@ impl PackageContext{
 
 #[test]
 fn test_encode_decode() {
+    use crate::utils::context::{PackageInfo, SIGTYPE, SrcTypePath};
     fn get_pack_info()->PackageInfo{
         PackageInfo{
             name: "rust-crate".to_string(),

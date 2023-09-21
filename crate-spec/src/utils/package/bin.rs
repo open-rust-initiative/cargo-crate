@@ -27,7 +27,7 @@ pub trait Decode{
         Self::decode(bin)
     }
     fn decode_from_reader<W: BufRead>(reader: &mut W, size: usize)->Self::Output{
-        let mut buf = vec![0 as u8; size];
+        let mut buf = vec![0u8; size];
         reader.read(buf.as_mut_slice()).unwrap();
         Self::decode(buf.as_mut_slice())
     }

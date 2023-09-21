@@ -1,9 +1,8 @@
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
-use crate_spec::utils::context::{PackageContext, SIGTYPE};
+use crate_spec::utils::context::{PackageContext};
 use crate_spec::utils::pkcs::PKCS;
-use crate::pack::get_pack_context;
 
 struct Unpacking {
     file_path: PathBuf,
@@ -40,6 +39,8 @@ pub fn get_unpack_context(file_path:&str, cas_path:Vec<String>) ->PackageContext
 
 #[test]
 fn test_unpack(){
+    use crate::pack::get_pack_context;
+    use crate_spec::utils::context::{SIGTYPE};
     let mut pack_context = get_pack_context("../crate-spec");
     fn get_sign()->PKCS{
         let mut pkcs1 = PKCS::new();

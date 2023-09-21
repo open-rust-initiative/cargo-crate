@@ -22,10 +22,6 @@ fn run_cmd(cmd:&str, args:Vec<&str>, cur_dir:Option<&PathBuf>)->Result<String, S
         Err(stderr.to_string())
     }
 }
-
-
-
-
 struct Packing {
     pack_context:PackageContext,
     crate_path: PathBuf,
@@ -49,19 +45,22 @@ impl Packing {
     }
 
     fn read_crate(&mut self){
+        //parse crate toml file
         let mut toml_path = self.crate_path.clone();
         toml_path.push("Cargo.toml");
         let toml_path = fs::canonicalize(toml_path).unwrap();
         let toml = CrateToml::from_file(toml_path.to_str().unwrap().to_string());
         toml.write_info_to_package_context(&mut self.pack_context);
+
+        //read crate binary
         let crate_bin_file = format!("{}-{}.crate", self.pack_context.pack_info.name, self.pack_context.pack_info.version);
         let mut crate_bin_path = self.crate_path.clone();
-        crate_bin_path.push("target");
-        crate_bin_path.push("package");
-        crate_bin_path.push(crate_bin_file);
+        crate_bin_path.push(format!("target/package/{}", crate_bin_file));
         let crate_bin_path = fs::canonicalize(crate_bin_path).unwrap();
         assert!(crate_bin_path.exists());
         let bin = fs::read(crate_bin_path).unwrap();
+
+        //write to pack_context
         self.pack_context.add_crate_bin(bin);
     }
 

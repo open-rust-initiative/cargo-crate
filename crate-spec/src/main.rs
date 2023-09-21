@@ -1,8 +1,7 @@
-use std::fmt::format;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
-use clap::{Parser, Subcommand};
+use clap::{Parser};
 use crate_spec::utils::context::SIGTYPE;
 use crate_spec::utils::pkcs::PKCS;
 use crate::pack::{get_pack_context, get_pack_name};
