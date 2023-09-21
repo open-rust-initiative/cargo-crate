@@ -185,10 +185,10 @@ impl CratePackage{
     }
 
     pub fn decode_from_slice(bin:&[u8])->Result<CratePackage, String>{
-        match Self::decode(&mut create_bincode_slice_decoder(bin), bin){
-            Ok(t) => return Ok(t),
-            Err(DecodeError::Other(s)) => return Err(s.to_string()),
-            Err(x) => return Err(x.to_string())
+        return match Self::decode(&mut create_bincode_slice_decoder(bin), bin) {
+            Ok(t) => Ok(t),
+            Err(DecodeError::Other(s)) => Err(s.to_string()),
+            Err(_) => Err("file format not right! - others".to_string())
         }
     }
 
