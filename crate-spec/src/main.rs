@@ -40,19 +40,23 @@ fn main() {
     if args.encode && !args.decode{
         //check args
         if args.cert_path.is_none(){
-            panic!("certificate not provided!");
+            eprintln!("certificate not provided!");
+            return;
         }
         if args.pkey_path.is_none(){
-            panic!("pkey not provided!");
+            eprintln!("pkey not provided!");
+            return;
         }
         if args.root_ca_paths.is_empty(){
-            panic!("root-ca not provided!");
+            eprintln!("root-ca not provided!");
+            return;
         }
 
         //check input file
         let p = PathBuf::from_str(&args.input).unwrap();
         if !p.exists(){
-            panic!("input files not found!");
+            eprintln!("input files not found!");
+            return;
         }
 
         //pack package
@@ -73,13 +77,15 @@ fn main() {
     }else if !args.encode && args.decode{
         //check args
         if args.root_ca_paths.is_empty(){
-            panic!("root-ca not provided!");
+            eprintln!("root-ca not provided!");
+            return;
         }
 
         //check input file
         let p = PathBuf::from_str(&args.input).unwrap();
         if !p.exists(){
-                panic!("input files not found!");
+                eprintln!("input files not found!");
+                return;
         }
 
         //decode package from binary
@@ -99,6 +105,7 @@ fn main() {
         metadata_path.push(format!("{}-{}-metadata.txt", pack_context.pack_info.name, pack_context.pack_info.version));
         fs::write(metadata_path, format!("{:#?}\n{:#?}", pack_context.pack_info, pack_context.dep_infos)).unwrap();
     }else{
-        panic!("-e or -d not found!")
+        eprintln!("-e or -d not found!");
+        return;
     }
 }

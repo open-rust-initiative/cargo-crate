@@ -150,7 +150,7 @@ impl PackageContext{
         self.get_binary(&crate_package);
         self.get_sigs(&crate_package);
         if self.check_sigs(&crate_package, bin) == false{
-            panic!("sig not right!");
+            return Err("file sig not right".to_string());
         }
         return Ok((crate_package, str_table));
     }

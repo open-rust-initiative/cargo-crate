@@ -201,26 +201,23 @@ impl CratePackage{
 
         let crate_header:CrateHeader = Decode::decode(decoder)?;
 
-        if bin.len() > (crate_header.strtable_size + crate_header.strtable_offset) as usize{
-            return Err(DecodeError::Other("file format not right!"))
-        }
 
-        early_return!(bin.len() > (crate_header.strtable_size + crate_header.strtable_offset) as usize, "file format not right!");
+        early_return!(bin.len() > (crate_header.strtable_size + crate_header.strtable_offset) as usize, "file format not right! - strtable");
         let string_table_bin = &bin[crate_header.strtable_offset as usize .. (crate_header.strtable_size + crate_header.strtable_offset) as usize];
         let string_table:RawArrayType<Uchar> = RawArrayType::<Uchar>::decode(&mut create_bincode_slice_decoder(string_table_bin), string_table_bin.len())?;
 
-        early_return!(bin.len() > (crate_header.si_offset + crate_header.si_size) as usize, "file format not right!");
+        early_return!(bin.len() > (crate_header.si_offset + crate_header.si_size) as usize, "file format not right! - si");
         let section_index_bin = &bin[crate_header.si_offset as usize .. (crate_header.si_offset + crate_header.si_size) as usize];
         let section_index:SectionIndex = SectionIndex::decode(&mut create_bincode_slice_decoder(section_index_bin), crate_header.si_num as usize)?;
 
         let mut enum_size_off_in_bytes = vec![];
         section_index.entries.arr.iter().for_each(|index_entry| enum_size_off_in_bytes.push((index_entry.sh_type as i32, index_entry.sh_size as usize, index_entry.sh_offset as usize)));
 
-        early_return!(bin.len() > crate_header.ds_offset as usize, "file format not right!");
+        early_return!(bin.len() > crate_header.ds_offset as usize, "file format not right! - ds");
         let datasections_bin = &bin[crate_header.ds_offset as usize ..];
         let data_sections = DataSectionCollectionType::decode(&mut create_bincode_slice_decoder(datasections_bin), enum_size_off_in_bytes)?;
 
-        early_return!(bin[bin.len() - FINGERPRINT_LEN ..].len() == FINGERPRINT_LEN, "file format not right!");
+        early_return!(bin[bin.len() - FINGERPRINT_LEN ..].len() == FINGERPRINT_LEN, "file format not right! - fingerprint");
         let fingerprint_bin = &bin[bin.len() - FINGERPRINT_LEN ..];
         let finger_print:FingerPrintType = Decode::decode(&mut create_bincode_slice_decoder(fingerprint_bin))?;
 
