@@ -1,7 +1,7 @@
+use openssl::hash::{hash, MessageDigest};
 use std::fmt::{Debug, Formatter};
 use std::fs;
 use std::path::Path;
-use openssl::hash::{hash, MessageDigest};
 
 use openssl::pkcs7::Pkcs7;
 use openssl::pkcs7::Pkcs7Flags;
@@ -10,53 +10,59 @@ use openssl::stack::Stack;
 use openssl::x509::store::X509StoreBuilder;
 use openssl::x509::X509;
 
-
 #[derive(PartialEq)]
-pub struct PKCS{
+pub struct PKCS {
     cert_bin: Vec<u8>,
     pkey_bin: Vec<u8>,
-    root_ca_bins: Vec<Vec<u8>>
+    root_ca_bins: Vec<Vec<u8>>,
 }
 
-impl Debug for PKCS{
+impl Debug for PKCS {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str("")
     }
 }
 
-impl PKCS{
-    pub fn new()->Self{
-        Self{
+impl PKCS {
+    pub fn new() -> Self {
+        Self {
             cert_bin: vec![],
             pkey_bin: vec![],
             root_ca_bins: vec![],
         }
     }
-    pub fn get_root_ca_bins(ca_paths: Vec<String>)->Vec<Vec<u8>>{
+    pub fn get_root_ca_bins(ca_paths: Vec<String>) -> Vec<Vec<u8>> {
         let mut root_ca_bins = vec![];
-        for ca_path in ca_paths{
+        for ca_path in ca_paths {
             root_ca_bins.push(fs::read(Path::new(ca_path.as_str())).unwrap());
         }
         root_ca_bins
     }
 
-    pub fn load_from_file_writer(&mut self, cert_path: String, pkey_path: String, ca_paths: Vec<String>){
+    pub fn load_from_file_writer(
+        &mut self,
+        cert_path: String,
+        pkey_path: String,
+        ca_paths: Vec<String>,
+    ) {
         //just for demo
         self.cert_bin = fs::read(Path::new(cert_path.as_str())).unwrap();
         self.pkey_bin = fs::read(Path::new(pkey_path.as_str())).unwrap();
-        for ca_path in ca_paths{
-            self.root_ca_bins.push(fs::read(Path::new(ca_path.as_str())).unwrap());
+        for ca_path in ca_paths {
+            self.root_ca_bins
+                .push(fs::read(Path::new(ca_path.as_str())).unwrap());
         }
     }
 
-    pub fn load_from_file_reader(&mut self,  ca_paths: Vec<String>){
+    pub fn load_from_file_reader(&mut self, ca_paths: Vec<String>) {
         //just for demo
-        for ca_path in ca_paths{
-            self.root_ca_bins.push(fs::read(Path::new(ca_path.as_str())).unwrap());
+        for ca_path in ca_paths {
+            self.root_ca_bins
+                .push(fs::read(Path::new(ca_path.as_str())).unwrap());
         }
     }
 
-    pub fn encode_pkcs_bin(&self, message:&[u8])->Vec<u8>{
+    pub fn encode_pkcs_bin(&self, message: &[u8]) -> Vec<u8> {
         //FIXME current we don't support middle certs
         let cert = X509::from_pem(self.cert_bin.as_slice()).unwrap();
         let certs = Stack::new().unwrap();
@@ -71,16 +77,12 @@ impl PKCS{
 
         let _store = store_builder.build();
 
-        let pkcs7 =
-            Pkcs7::sign(&cert, &pkey, &certs, message, flags).expect("should succeed");
+        let pkcs7 = Pkcs7::sign(&cert, &pkey, &certs, message, flags).expect("should succeed");
 
-        let signed = pkcs7
-            .to_smime(message, flags)
-            .expect("should succeed");
-        signed
+        pkcs7.to_smime(message, flags).expect("should succeed")
     }
 
-    pub fn decode_pkcs_bin(signed_bin:&[u8], root_ca_bins: &Vec<Vec<u8>>)->Vec<u8>{
+    pub fn decode_pkcs_bin(signed_bin: &[u8], root_ca_bins: &[Vec<u8>]) -> Vec<u8> {
         //FIXME maybe all pkcs section should share same root cas
         let certs = Stack::new().unwrap();
         let flags = Pkcs7Flags::STREAM;
@@ -93,8 +95,7 @@ impl PKCS{
 
         let store = store_builder.build();
 
-        let (pkcs7_decoded, _content) =
-            Pkcs7::from_smime(signed_bin).expect("should succeed");
+        let (pkcs7_decoded, _content) = Pkcs7::from_smime(signed_bin).expect("should succeed");
 
         let mut output = Vec::new();
         pkcs7_decoded
@@ -103,12 +104,17 @@ impl PKCS{
         output
     }
 
-    pub fn gen_digest_256(&self, bin:&[u8])->Vec<u8>{
+    pub fn gen_digest_256(&self, bin: &[u8]) -> Vec<u8> {
         let res = hash(MessageDigest::sha256(), bin).unwrap();
         res.to_vec()
     }
 }
 
+impl Default for PKCS {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 // #[test]
 // fn test_pkcs(){
 //     let mut pkcs = PKCS::new();

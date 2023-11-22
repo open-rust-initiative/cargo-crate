@@ -1,6 +1,6 @@
-pub mod package;
-pub mod encode;
-pub mod decode;
 pub mod context;
-pub mod pkcs;
+pub mod decode;
+pub mod encode;
 pub mod from_toml;
+pub mod package;
+pub mod pkcs;
