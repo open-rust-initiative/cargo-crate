@@ -74,23 +74,23 @@ impl Packing {
         self.pack_context.add_crate_bin(bin);
     }
 
-    fn get_pack_context(mut self) -> PackageContext {
+    fn pack_context(mut self) -> PackageContext {
         self.cmd_cargo_package();
         self.read_crate();
         self.pack_context
     }
 }
 
-pub fn get_pack_context(path: &str) -> PackageContext {
-    Packing::new(path).get_pack_context()
+pub fn pack_context(path: &str) -> PackageContext {
+    Packing::new(path).pack_context()
 }
 
-pub fn get_pack_name(pack: &PackageContext) -> String {
+pub fn pack_name(pack: &PackageContext) -> String {
     format!("{}-{}.scrate", pack.pack_info.name, pack.pack_info.version)
 }
 
 #[test]
 fn test_cmd_cargo_package() {
-    let pac = get_pack_context("../crate-spec");
+    let pac = pack_context("../crate-spec");
     println!("{:#?}", pac);
 }

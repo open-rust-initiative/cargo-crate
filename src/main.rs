@@ -1,5 +1,5 @@
-use crate::pack::{get_pack_context, get_pack_name};
-use crate::unpack::get_unpack_context;
+use crate::pack::{pack_context, pack_name};
+use crate::unpack::unpack_context;
 use clap::Parser;
 use crate_spec::utils::context::SIGTYPE;
 use crate_spec::utils::pkcs::PKCS;
@@ -9,6 +9,7 @@ use std::str::FromStr;
 
 pub mod pack;
 pub mod unpack;
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -59,7 +60,7 @@ fn main() {
         }
 
         //pack package
-        let mut pack_context = get_pack_context(&args.input);
+        let mut pack_context = pack_context(&args.input);
 
         //sign package
         let mut pkcs = PKCS::new();
@@ -75,7 +76,7 @@ fn main() {
 
         //dump binary path/<name>.scrate
         let mut bin_path = PathBuf::from_str(args.output.as_str()).unwrap();
-        bin_path.push(get_pack_name(&pack_context));
+        bin_path.push(pack_name(&pack_context));
         fs::write(bin_path, bin).unwrap();
     } else if !args.encode && args.decode {
         //check args
@@ -92,7 +93,7 @@ fn main() {
         }
 
         //decode package from binary
-        let pack_context = get_unpack_context(args.input.as_str(), args.root_ca_paths);
+        let pack_context = unpack_context(args.input.as_str(), args.root_ca_paths);
         if pack_context.is_err() {
             eprintln!("{}", pack_context.unwrap_err());
             return;
@@ -119,7 +120,7 @@ fn main() {
                 pack_context.pack_info, pack_context.dep_infos
             ),
         )
-        .unwrap();
+            .unwrap();
     } else {
         eprintln!("-e or -d not found!");
         return;

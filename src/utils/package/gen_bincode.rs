@@ -363,37 +363,37 @@ impl CrateBinarySection {
 
 //get_size
 impl CrateHeader {
-    pub fn get_size(&self) -> usize {
+    pub fn size(&self) -> usize {
         encode_size_by_bincode(self)
     }
 }
 
 impl<T: Encode + 'static> RawArrayType<T> {
-    pub fn get_size(&self) -> usize {
+    pub fn size(&self) -> usize {
         encode_size_by_bincode(self)
     }
 }
 
 impl SectionIndex {
-    pub fn get_size(&self) -> usize {
+    pub fn size(&self) -> usize {
         encode_size_by_bincode(self)
     }
 
-    pub fn get_num(&self) -> usize {
+    pub fn num(&self) -> usize {
         self.entries.arr.len()
     }
 
-    pub fn get_none_sig_size(&self) -> usize {
+    pub fn none_sig_size(&self) -> usize {
         let mut total_len = 0;
         self.entries.arr.iter().for_each(|x| {
             if x.sh_type != 4 {
-                total_len += x.get_size();
+                total_len += x.size();
             }
         });
         total_len
     }
 
-    pub fn get_none_sig_num(&self) -> usize {
+    pub fn none_sig_num(&self) -> usize {
         let mut total_len = 0;
         self.entries.arr.iter().for_each(|x| {
             if x.sh_type != 4 {
@@ -403,12 +403,12 @@ impl SectionIndex {
         total_len
     }
 
-    pub fn get_sig_num(&self) -> usize {
-        self.get_num() - self.get_none_sig_num()
+    pub fn sig_num(&self) -> usize {
+        self.num() - self.none_sig_num()
     }
 
-    pub fn get_sig_size(&self) -> usize {
-        self.get_size() - self.get_none_sig_size()
+    pub fn sig_size(&self) -> usize {
+        self.size() - self.none_sig_size()
     }
 
     pub fn encode_fake_to_vec(&self, no_sig_size: usize, size: usize) -> Vec<u8> {
@@ -418,44 +418,44 @@ impl SectionIndex {
         buf
     }
 
-    pub fn get_datasection_size_without_sig(&self) -> usize {
-        (self.entries.arr[self.get_none_sig_num() - 1].sh_offset
-            + self.entries.arr[self.get_none_sig_num() - 1].sh_size) as usize
+    pub fn datasection_size_without_sig(&self) -> usize {
+        (self.entries.arr[self.none_sig_num() - 1].sh_offset
+            + self.entries.arr[self.none_sig_num() - 1].sh_size) as usize
     }
 }
 
 impl DataSectionCollectionType {
-    pub fn get_size(&self) -> usize {
+    pub fn size(&self) -> usize {
         encode_size_by_bincode(self)
     }
 }
 
 impl PackageSection {
-    pub fn get_size(&self) -> usize {
+    pub fn size(&self) -> usize {
         encode_size_by_bincode(self)
     }
 }
 
 impl DepTableSection {
-    pub fn get_size(&self) -> usize {
+    pub fn size(&self) -> usize {
         encode_size_by_bincode(self)
     }
 }
 
 impl CrateBinarySection {
-    pub fn get_size(&self) -> usize {
+    pub fn size(&self) -> usize {
         encode_size_by_bincode(self)
     }
 }
 
 impl SigStructureSection {
-    pub fn get_size(&self) -> usize {
+    pub fn size(&self) -> usize {
         encode_size_by_bincode(self)
     }
 }
 
 impl SectionIndexEntry {
-    pub fn get_size(&self) -> usize {
+    pub fn size(&self) -> usize {
         encode_size_by_bincode(self)
     }
 }

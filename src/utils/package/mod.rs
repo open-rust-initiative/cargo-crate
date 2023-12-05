@@ -276,7 +276,7 @@ pub enum DataSection {
     SigStructureSection(SigStructureSection),
 }
 
-pub fn get_datasection_type(d: &DataSection) -> Type {
+pub fn datasection_type(d: &DataSection) -> Type {
     match d {
         DataSection::PackageSection(_) => 0,
         DataSection::DepTableSection(_) => 1,

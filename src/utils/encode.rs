@@ -1,6 +1,6 @@
 use crate::utils::context::{PackageContext, StringTable, NOT_SIG_NUM};
 use crate::utils::package::{
-    get_datasection_type, CrateBinarySection, CratePackage, DataSection, DataSectionCollectionType,
+    datasection_type, CrateBinarySection, CratePackage, DataSection, DataSectionCollectionType,
     DepTableEntry, DepTableSection, LenArrayType, Off, PackageSection, RawArrayType,
     SectionIndexEntry, SigStructureSection, Size, CRATEVERSION, FINGERPRINT_LEN, MAGIC_NUMBER,
 };
@@ -14,7 +14,7 @@ impl CratePackage {
         for (i, (_size, _off)) in self.data_sections.encode_size_offset().iter().enumerate() {
             let size = *_size;
             let off = *_off;
-            let typ = get_datasection_type(&self.data_sections.col.arr[i]);
+            let typ = datasection_type(&self.data_sections.col.arr[i]);
             self.section_index.entries.arr.push(SectionIndexEntry::new(
                 typ,
                 off as Off,
@@ -29,12 +29,12 @@ impl CratePackage {
 
     pub fn set_crate_header(&mut self, fake_num: usize) {
         self.crate_header.c_version = CRATEVERSION;
-        self.crate_header.strtable_size = self.string_table.get_size() as Size;
+        self.crate_header.strtable_size = self.string_table.size() as Size;
         self.crate_header.strtable_offset =
-            (self.crate_header.get_size() + self.magic_number.len()) as Size;
-        self.crate_header.si_size = self.section_index.get_size() as Size
-            + (fake_num * SectionIndexEntry::default().get_size()) as Size;
-        self.crate_header.si_num = self.section_index.get_num() as Size + fake_num as Size;
+            (self.crate_header.size() + self.magic_number.len()) as Size;
+        self.crate_header.si_size = self.section_index.size() as Size
+            + (fake_num * SectionIndexEntry::default().size()) as Size;
+        self.crate_header.si_num = self.section_index.num() as Size + fake_num as Size;
         self.crate_header.si_offset =
             self.crate_header.strtable_offset + self.crate_header.strtable_size;
         self.crate_header.ds_offset = self.crate_header.si_offset + self.crate_header.si_size;
@@ -114,8 +114,8 @@ impl PackageContext {
 
     fn calc_sigs(&mut self, crate_package: &CratePackage) {
         let bin_all = encode2vec_by_bincode(crate_package);
-        let bin_all = self.get_binary_before_sig(crate_package, bin_all.as_slice());
-        let bin_crate = crate_package.get_crate_binary_section().bin.arr.as_slice();
+        let bin_all = self.binary_before_sig(crate_package, bin_all.as_slice());
+        let bin_crate = crate_package.crate_binary_section().bin.arr.as_slice();
         self.sigs.iter_mut().for_each(|siginfo| {
             let digest;
             match siginfo.typ {

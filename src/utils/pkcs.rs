@@ -31,7 +31,7 @@ impl PKCS {
             root_ca_bins: vec![],
         }
     }
-    pub fn get_root_ca_bins(ca_paths: Vec<String>) -> Vec<Vec<u8>> {
+    pub fn root_ca_bins(ca_paths: Vec<String>) -> Vec<Vec<u8>> {
         let mut root_ca_bins = vec![];
         for ca_path in ca_paths {
             root_ca_bins.push(fs::read(Path::new(ca_path.as_str())).unwrap());

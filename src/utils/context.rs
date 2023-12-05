@@ -71,7 +71,7 @@ impl PackageContext {
         });
     }
 
-    pub fn get_dep_num(&self) -> usize {
+    pub fn dep_num(&self) -> usize {
         self.dep_infos.len()
     }
 
@@ -86,7 +86,7 @@ impl PackageContext {
         self.sigs.len() - 1
     }
 
-    pub fn get_sig_num(&self) -> usize {
+    pub fn sig_num(&self) -> usize {
         self.sigs.len()
     }
 
@@ -153,12 +153,12 @@ impl PackageInfo {
     }
 
     pub fn read_from_package_section(&mut self, ps: &PackageSection, str_table: &StringTable) {
-        self.name = str_table.get_str_by_off(&ps.pkg_name);
-        self.version = str_table.get_str_by_off(&ps.pkg_version);
-        self.license = str_table.get_str_by_off(&ps.pkg_license);
+        self.name = str_table.str_by_off(&ps.pkg_name);
+        self.version = str_table.str_by_off(&ps.pkg_version);
+        self.license = str_table.str_by_off(&ps.pkg_license);
         let authors_off = ps.pkg_authors.to_vec();
         authors_off.iter().for_each(|author_off| {
-            self.authors.push(str_table.get_str_by_off(author_off));
+            self.authors.push(str_table.str_by_off(author_off));
         });
     }
 }
@@ -233,29 +233,29 @@ impl DepInfo {
 
     pub fn read_from_dep_table_entry(&mut self, dte: &DepTableEntry, str_table: &StringTable) {
         self.dump = true;
-        self.name = str_table.get_str_by_off(&dte.dep_name);
-        self.ver_req = str_table.get_str_by_off(&dte.dep_verreq);
+        self.name = str_table.str_by_off(&dte.dep_name);
+        self.ver_req = str_table.str_by_off(&dte.dep_verreq);
         match dte.dep_srctype {
             0 => {
                 self.src = SrcTypePath::CratesIo;
             }
             1 => {
-                self.src = SrcTypePath::Git(str_table.get_str_by_off(&dte.dep_srcpath));
+                self.src = SrcTypePath::Git(str_table.str_by_off(&dte.dep_srcpath));
             }
             2 => {
-                self.src = SrcTypePath::Url(str_table.get_str_by_off(&dte.dep_srcpath));
+                self.src = SrcTypePath::Url(str_table.str_by_off(&dte.dep_srcpath));
             }
             3 => {
-                self.src = SrcTypePath::Registry(str_table.get_str_by_off(&dte.dep_srcpath));
+                self.src = SrcTypePath::Registry(str_table.str_by_off(&dte.dep_srcpath));
             }
             4 => {
-                self.src = SrcTypePath::P2p(str_table.get_str_by_off(&dte.dep_srcpath));
+                self.src = SrcTypePath::P2p(str_table.str_by_off(&dte.dep_srcpath));
             }
             _ => {
                 panic!("dep_srctype not valid!")
             }
         }
-        self.src_platform = str_table.get_str_by_off(&dte.dep_platform);
+        self.src_platform = str_table.str_by_off(&dte.dep_platform);
     }
 }
 
@@ -310,11 +310,11 @@ impl StringTable {
         self.str2off.contains_key(st)
     }
 
-    pub fn get_off_by_str(&self, st: &String) -> u32 {
+    pub fn off_by_str(&self, st: &String) -> u32 {
         *self.str2off.get(st).unwrap()
     }
 
-    pub fn get_str_by_off(&self, off: &u32) -> String {
+    pub fn str_by_off(&self, off: &u32) -> String {
         self.off2str.get(off).unwrap().clone()
     }
 
