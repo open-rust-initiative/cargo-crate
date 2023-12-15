@@ -68,9 +68,7 @@ impl CratePackage {
 impl PackageContext {
     pub fn binary_before_sig(&self, crate_package: &CratePackage, bin: &[u8]) -> Vec<u8> {
         //FIXME
-        let ds_size = crate_package
-            .section_index
-            .datasection_size_without_sig();
+        let ds_size = crate_package.section_index.datasection_size_without_sig();
         let total_size = crate_package.crate_header.ds_offset as usize + ds_size;
         if crate_package.section_index.sig_num() != self.sigs.len() && !self.sigs.is_empty() {
             assert_eq!(crate_package.section_index.sig_num(), 0);

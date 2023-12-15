@@ -1,15 +1,15 @@
 use crate::pack::{pack_context, pack_name};
 use crate::unpack::unpack_context;
-use clap::Parser;
 use crate::utils::context::SIGTYPE;
 use crate::utils::pkcs::PKCS;
+use clap::Parser;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-pub mod utils;
 pub mod pack;
 pub mod unpack;
+pub mod utils;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -121,7 +121,7 @@ fn main() {
                 pack_context.pack_info, pack_context.dep_infos
             ),
         )
-            .unwrap();
+        .unwrap();
     } else {
         eprintln!("-e or -d not found!");
         return;

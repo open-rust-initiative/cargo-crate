@@ -32,10 +32,7 @@ impl Unpacking {
     }
 }
 
-pub fn unpack_context(
-    file_path: &str,
-    cas_path: Vec<String>,
-) -> Result<PackageContext, String> {
+pub fn unpack_context(file_path: &str, cas_path: Vec<String>) -> Result<PackageContext, String> {
     let mut unpack = Unpacking::new(file_path);
     cas_path
         .iter()
