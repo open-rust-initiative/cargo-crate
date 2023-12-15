@@ -1,5 +1,5 @@
-use crate_spec::utils::context::PackageContext;
-use crate_spec::utils::pkcs::PKCS;
+use crate::utils::context::PackageContext;
+use crate::utils::pkcs::PKCS;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;

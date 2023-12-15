@@ -1,12 +1,13 @@
 use crate::pack::{pack_context, pack_name};
 use crate::unpack::unpack_context;
 use clap::Parser;
-use crate_spec::utils::context::SIGTYPE;
-use crate_spec::utils::pkcs::PKCS;
+use crate::utils::context::SIGTYPE;
+use crate::utils::pkcs::PKCS;
 use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+pub mod utils;
 pub mod pack;
 pub mod unpack;
 

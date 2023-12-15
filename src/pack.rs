@@ -1,5 +1,5 @@
-use crate_spec::utils::context::PackageContext;
-use crate_spec::utils::from_toml::CrateToml;
+use crate::utils::context::PackageContext;
+use crate::utils::from_toml::CrateToml;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
