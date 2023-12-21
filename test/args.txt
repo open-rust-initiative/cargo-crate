@@ -1,0 +1,2 @@
+run -- -e -c test/cert.pem -r test/root-ca.pem -p test/key.pem -o test/output/ ../crate-spec
+run -- -d -r test/root-ca.pem -o test/output/ test/output/crate-spec-0.1.0.scrate

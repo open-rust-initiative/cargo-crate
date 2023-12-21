@@ -1,5 +1,65 @@
 # cargo-crate
 
+A set of tools to operate Rust software package
+
+## Install
+
+```shell
+# install directly
+cargo install --git https://github.com/open-rust-initiative/cargo-crate.git
+```
+_OR_ 
+
+```shell
+# clone the project and install
+git clone https://github.com/open-rust-initiative/cargo-crate.git
+cd cargo-crate
+cargo install --path .
+```
+
+## Usage
+```shell
+Usage: cargo crate
+       cargo crate encode [OPTIONS] --output <OUTPUT> <INPUT>
+       cargo crate decode [OPTIONS] --output <OUTPUT> <INPUT>
+       cargo crate help [COMMAND]...
+```
+## Features
+
+### Encode Crate
+Encode the Rust project to a new design, signed crate format `.scrate`,
+
+Usage
+```shell
+cargo crate encode:
+  -r, --root-ca-paths <ROOT_CA_PATHS>
+  -c, --cert-path <CERT_PATH>          certification file path
+  -p, --pkey-path <PKEY_PATH>          private key path
+  -o, --output <OUTPUT>                output file path
+  -h, --help                           Print help
+  <INPUT>
+```
+Example
+```shell
+ cargo crate encode  -r test/root-ca.pem  -c test/cert.pem -p test/key.pem -o test/output  ../cargo-crate
+```
+
+### Decode Crate
+Decode the `.scrate` file, verifying its integrity and source.  decode the file back into the original `.crate` file.
+
+Usage
+```shell
+cargo crate decode:
+  -r, --root-ca-paths <ROOT_CA_PATHS>
+  -o, --output <OUTPUT>                output file path
+  -h, --help                           Print help
+  <INPUT>
+```
+Example
+```shell
+ cargo crate decode  -r test/root-ca.pem  -o test/output  test/output/crate-spec-0.1.0.scrate
+```
+
 ## Contribution
 
 The `cargo-crate` project relies on community contributions and aims to simplify getting started. To develop `cargo-crate`, clone the repository, then install all dependencies, run the test suite and try it out locally. Pick an issue, make changes, and submit a pull request for community review.
