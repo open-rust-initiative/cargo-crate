@@ -132,11 +132,11 @@ impl Default for PackageInfo {
 }
 
 impl PackageInfo {
-    pub fn new(name: String, version: String, lisense: String, authors: Vec<String>) -> Self {
+    pub fn new(name: String, version: String, license: String, authors: Vec<String>) -> Self {
         Self {
             name,
             version,
-            license: lisense,
+            license,
             authors,
         }
     }

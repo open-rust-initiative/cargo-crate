@@ -40,7 +40,7 @@ impl CratePackage {
         self.crate_header.ds_offset = self.crate_header.si_offset + self.crate_header.si_size;
     }
 
-    pub fn set_magic_numer(&mut self) {
+    pub fn set_magic_number(&mut self) {
         self.magic_number = MAGIC_NUMBER;
     }
 
@@ -145,7 +145,7 @@ impl PackageContext {
         str_table: &mut StringTable,
         crate_package: &mut CratePackage,
     ) {
-        crate_package.set_magic_numer();
+        crate_package.set_magic_number();
         self.set_pack_dep_bin(crate_package, str_table);
         //this is setting fake sigsection
         self.set_sigs(crate_package, NOT_SIG_NUM);
