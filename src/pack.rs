@@ -91,6 +91,6 @@ pub fn pack_name(pack: &PackageContext) -> String {
 
 #[test]
 fn test_cmd_cargo_package() {
-    let pac = pack_context("../crate-spec");
+    let pac = pack_context("../cargo-crate");
     println!("{:#?}", pac);
 }

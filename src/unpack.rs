@@ -43,7 +43,7 @@ pub fn unpack_context(file_path: &str, cas_path: Vec<String>) -> Result<PackageC
 #[test]
 fn test_unpack() {
     use crate::pack::pack_context;
-    use crate_spec::utils::context::SIGTYPE;
+    use super::utils::context::SIGTYPE;
     let mut pack_context = pack_context("../crate-spec");
     fn sign() -> PKCS {
         let mut pkcs1 = PKCS::new();
@@ -62,7 +62,7 @@ fn test_unpack() {
     let pack_context_decode =
         unpack_context("test/crate-spec.cra", vec!["test/root-ca.pem".to_string()]);
 
-    assert_eq!(pack_context_decode.pack_info, pack_context.pack_info);
-    assert_eq!(pack_context_decode.dep_infos, pack_context.dep_infos);
-    assert_eq!(pack_context_decode.crate_binary, pack_context.crate_binary);
+    assert_eq!(pack_context_decode.as_ref().unwrap().pack_info, pack_context.pack_info);
+    assert_eq!(pack_context_decode.as_ref().unwrap().dep_infos, pack_context.dep_infos);
+    assert_eq!(pack_context_decode.unwrap().crate_binary, pack_context.crate_binary);
 }
