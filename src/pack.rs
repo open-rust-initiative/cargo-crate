@@ -88,9 +88,3 @@ pub fn pack_context(path: &str) -> PackageContext {
 pub fn pack_name(pack: &PackageContext) -> String {
     format!("{}-{}.scrate", pack.pack_info.name, pack.pack_info.version)
 }
-
-#[test]
-fn test_cmd_cargo_package() {
-    let pac = pack_context("../cargo-crate");
-    println!("{:#?}", pac);
-}
