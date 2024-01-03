@@ -1,8 +1,8 @@
 use crate::utils::context::PackageContext;
 use crate::utils::pkcs::PKCS;
-use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::{env, fs};
 
 struct Unpacking {
     file_path: PathBuf,
@@ -42,9 +42,9 @@ pub fn unpack_context(file_path: &str, cas_path: Vec<String>) -> Result<PackageC
 
 #[test]
 fn test_unpack() {
-    use crate::pack::pack_context;
     use super::utils::context::SIGTYPE;
-    let mut pack_context = pack_context("../crate-spec");
+    use crate::pack::pack_context;
+    let mut pack_context = pack_context(env::current_dir().unwrap().to_str().unwrap());
     fn sign() -> PKCS {
         let mut pkcs1 = PKCS::new();
         pkcs1.load_from_file_writer(
@@ -62,7 +62,18 @@ fn test_unpack() {
     let pack_context_decode =
         unpack_context("test/crate-spec.cra", vec!["test/root-ca.pem".to_string()]);
 
-    assert_eq!(pack_context_decode.as_ref().unwrap().pack_info, pack_context.pack_info);
-    assert_eq!(pack_context_decode.as_ref().unwrap().dep_infos, pack_context.dep_infos);
-    assert_eq!(pack_context_decode.unwrap().crate_binary, pack_context.crate_binary);
+    assert_eq!(
+        pack_context_decode.as_ref().unwrap().pack_info,
+        pack_context.pack_info
+    );
+    assert_eq!(
+        pack_context_decode.as_ref().unwrap().dep_infos,
+        pack_context.dep_infos
+    );
+    assert_eq!(
+        pack_context_decode.unwrap().crate_binary,
+        pack_context.crate_binary
+    );
+
+    fs::remove_file("test/crate-spec.cra").unwrap()
 }
