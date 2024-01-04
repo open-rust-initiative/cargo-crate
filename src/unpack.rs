@@ -2,7 +2,7 @@ use crate::utils::context::PackageContext;
 use crate::utils::pkcs::PKCS;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::{env, fs};
+use std::fs;
 
 struct Unpacking {
     file_path: PathBuf,
@@ -42,8 +42,12 @@ pub fn unpack_context(file_path: &str, cas_path: Vec<String>) -> Result<PackageC
 
 #[test]
 fn test_unpack() {
-    use super::utils::context::SIGTYPE;
+    use std::env;
+    
+    use crate::utils::context::SIGTYPE;
     use crate::pack::pack_context;
+
+
     let mut pack_context = pack_context(env::current_dir().unwrap().to_str().unwrap());
     fn sign() -> PKCS {
         let mut pkcs1 = PKCS::new();
